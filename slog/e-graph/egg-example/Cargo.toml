@@ -1,0 +1,11 @@
+[package]
+name = "egg-example"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies.egg]
+# path = "../egg"
+git = "https://github.com/egraphs-good/egg"
+rev = "2b89b7594c2e163d9eab9cb687be1edbd7e09563"

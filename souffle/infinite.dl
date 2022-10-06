@@ -1,0 +1,5 @@
+
+.decl foo(a: number)
+.output foo
+foo(1).
+foo(n+1) :- foo(n). 

@@ -1,0 +1,56 @@
+; a lazier implementation of e-matching
+; this one only return the matched root e-node
+
+; E-Graph example here https://docs.rs/egg/0.9.1/egg/tutorials/_01_background/index.html
+(root-ast
+    (calc-expr-3 "/"
+        (calc-expr-3 "*"
+            (var "a") (num 2))
+        (num 2)))
+
+; union rule
+(e-union ?(calc-expr-3 "*" l (num 2))
+          (calc-expr-3 "<<" l (num 1)))
+
+(e-union ?(calc-expr-3 "/" (calc-expr-3 "*" x y) z)
+          (calc-expr-3 "/" x (calc-expr-3 "*" y z)))
+
+(e-union ?(calc-expr-3 "/" x x) (num 1))
+(e-union ?(calc-expr-3 "*" x (num 1)) x)
+
+; HOLE is a dummy AST element like ? in egg
+; input-pattern is unique to make it has less output
+(input-pattern
+    (p-calc-expr-3 "/"
+        (p-calc-expr-3 "<<"
+            (p-var "a") (HOLE))
+        (HOLE)))
+
+[(do-match p e) <-- (input-pattern p) (root-ast e)]
+
+; [(head-e-union a) <-- (e-union a _) !(e-union _ a)]
+; E-Graph is a "graph" so there must some way to represent edge, slog use 2 kind of link edge
+; 1. ast branch relation corresponds to solid connector arrow in e-graph figure.
+; 2. `e-union` relation corresponds to dash line connector arrow in e-graph figure.
+;    NOTE: in `egg` this connection is repsent as a list of urls, here we do same thing, and
+;    you can consider `(head-e-union a)` is a reference to that rust list in `egg`
+
+
+(e-match ?(do-match (p-var x) (var x)))
+(e-match ?(do-match (p-num x) (num x)))
+
+(e-match ?(do-match (HOLE) e))
+
+[(e-match ?(do-match (p-calc-expr-3 o pl pr)
+                     (calc-expr-3 o l r)))
+    <--
+    (e-match !(do-match pl l))
+    (e-match !(do-match pl l))]
+
+[(e-match ?(do-match p e))
+    <--
+    (e-match !(do-match p eu))
+    (e-union e eu)]
+
+[(output-match e) <-- (e-match (do-match p e)) (input-pattern p)]
+
