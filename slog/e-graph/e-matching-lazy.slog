@@ -1,56 +1,103 @@
 ; a lazier implementation of e-matching
 ; this one only return the matched root e-node
+; if multiple result pops, they must be equal (in same e-class), but since there is no solid equality check
+; happened in this "very lazy" code, so I just leave it return mutiple e-nodes
 
 ; E-Graph example here https://docs.rs/egg/0.9.1/egg/tutorials/_01_background/index.html
-(root-ast
-    (calc-expr-3 "/"
-        (calc-expr-3 "*"
-            (var "a") (num 2))
-        (num 2)))
+(raw-root-ast
+    (raw-calc-expr-3 "/"
+        (raw-calc-expr-3 "*"
+            (raw-var "a") (raw-num 2))
+        (raw-num 2)))
+; (root-ast
+;     (calc-expr-3 "/"
+;         (calc-expr-3 "*"
+;             (var "a") (num 2))
+;         (num 2)))
 
-; union rule
-(e-union ?(calc-expr-3 "*" l (num 2))
-          (calc-expr-3 "<<" l (num 1)))
+(raw-ast-node ?(raw-num n) (num n))
+(raw-ast-node ?(raw-var x) (var x))
+(raw-ast-node ?(raw-root r) (root-ast {raw-ast-node r}))
+(raw-ast-node ?(raw-calc-expr-3 op l r)
+               (calc-expr-3 op {raw-ast-node l} {raw-ast-node r}))
+               
+; union rule, clearly not saturated now
+(e-rewrite ?(calc-expr-3 "*" l (num 2))
+            (calc-expr-3 "<<" l (num 1)))
 
-(e-union ?(calc-expr-3 "/" (calc-expr-3 "*" x y) z)
-          (calc-expr-3 "/" x (calc-expr-3 "*" y z)))
+(e-rewrite ?(calc-expr-3 "/" (calc-expr-3 "*" x y) z)
+            (calc-expr-3 "*" x (calc-expr-3 "/" y z)))
+ 
+(e-rewrite ?(calc-expr-3 "/" x x) (num 1))
+(e-rewrite ?(calc-expr-3 "*" x (num 1)) x)
 
-(e-union ?(calc-expr-3 "/" x x) (num 1))
-(e-union ?(calc-expr-3 "*" x (num 1)) x)
+; ; saturation
+; (e-equiv ?(calc-expr-3 op l r) (calc-expr-3 op l r) )
+; (e-equiv ?(var x) (var x))
+; (e-equiv ?(num n) (num n))
+; (e-equiv ?(calc-expr-3 op l r) (calc-expr-3 op {e-equiv l} {e-equiv r}))
+
+; [(e-rewrite a b) --> (e-equiv a b)]
+; [(e-equiv a b) <-- (e-equiv b a)]
+; [(e-equiv a b) (e-equiv b c) --> (e-equiv a c)]
+
+; type of `e-equiv` should be d
+[(e-equiv e re) <-- (raw-ast-node re e)]
+
+[(e-equiv rewrited-expr rv)
+ <--
+    (e-equiv eq-l raw-l)
+    (e-equiv eq-r raw-r)
+    --
+    (e-equiv l raw-l)
+    (e-equiv r raw-r)
+    (e-equiv (calc-expr-3 op l r) rv)
+    (e-rewrite (calc-expr-3 op l r) rewrited-expr)]
+
+ [(e-rewrite (calc-expr-3 ))]   
 
 ; HOLE is a dummy AST element like ? in egg
 ; input-pattern is unique to make it has less output
+; (input-pattern
+;     (p-calc-expr-3 "/"
+;         (p-calc-expr-3 "<<"
+;             (p-var "a") (HOLE))
+;         (HOLE)))
+; (input-pattern
+;     (p-calc-expr-3 "*" (p-var "a") (p-num 1)))
 (input-pattern
-    (p-calc-expr-3 "/"
-        (p-calc-expr-3 "<<"
-            (p-var "a") (HOLE))
-        (HOLE)))
+    (p-var "a"))
+
 
 [(do-match p e) <-- (input-pattern p) (root-ast e)]
 
-; [(head-e-union a) <-- (e-union a _) !(e-union _ a)]
+; [(head-e-rewrite a) <-- (e-rewrite a _) !(e-rewrite _ a)]
 ; E-Graph is a "graph" so there must some way to represent edge, slog use 2 kind of link edge
 ; 1. ast branch relation corresponds to solid connector arrow in e-graph figure.
-; 2. `e-union` relation corresponds to dash line connector arrow in e-graph figure.
+; 2. `e-rewrite` relation corresponds to dash line connector arrow in e-graph figure.
 ;    NOTE: in `egg` this connection is repsent as a list of urls, here we do same thing, and
-;    you can consider `(head-e-union a)` is a reference to that rust list in `egg`
+;    you can consider `(head-e-rewrite a)` is a reference to that rust list in `egg`
 
 
-(e-match ?(do-match (p-var x) (var x)))
-(e-match ?(do-match (p-num x) (num x)))
+; (e-match ?(do-match (p-var x) (var x)))
+; (e-match ?(do-match (p-num x) (num x)))
 
-(e-match ?(do-match (HOLE) e))
+; (e-match ?(do-match (HOLE) e))
 
-[(e-match ?(do-match (p-calc-expr-3 o pl pr)
-                     (calc-expr-3 o l r)))
-    <--
-    (e-match !(do-match pl l))
-    (e-match !(do-match pl l))]
+; [(e-match ?(do-match (p-calc-expr-3 o pl pr)
+;                      (calc-expr-3 o l r)))
+;     <--
+;     (e-match !(do-match pl l))
+;     (e-match !(do-match pr r))]
 
-[(e-match ?(do-match p e))
-    <--
-    (e-match !(do-match p eu))
-    (e-union e eu)]
+; [(e-match ?(do-match p e))
+;     <--
+;     (e-match !(do-match p eu))
+;     (e-rewrite e eu)]
+; [(e-match ?(do-match p e))
+;     <--
+;     (e-match !(do-match p eu))
+;     (e-rewrite eu e)]
 
-[(output-match e) <-- (e-match (do-match p e)) (input-pattern p)]
+; [(output-match e) <-- (e-match (do-match p e)) (input-pattern p)]
 

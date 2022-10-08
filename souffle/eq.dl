@@ -1,0 +1,7 @@
+
+.decl e_equiv(a: number, b: number) eqrel
+.output e_equiv
+
+e_equiv(1,2).
+e_equiv(2,3).
+

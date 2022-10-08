@@ -10,7 +10,16 @@ edge(4,3,7).
 edge(3,4,9).
 
 spath(X,Y, D) <- edge(X,Y,D).
+
+--
 spath(X,Y,min<D>) <- spath(X,Z,D1), edge(Z,Y,D2), D=D1+D2.
+
+(spath .. .. 1)
+(helper .. ..  ..)
+(helper .. .. 2 ..)
+[(helper x y {min-agg ...} d2) <-- (spath x z d1) (edge z y d2)]
+[(spath x y {min-agg {+ d1 d2}}) <-- (helper x y z d1 d2) (...)]
+--
 
 % queries to execute
 query spath(A,B,C).

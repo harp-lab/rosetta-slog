@@ -21,7 +21,7 @@
           (calc-expr-3 "<<" l (num 1)))
 
 (e-union ?(calc-expr-3 "/" (calc-expr-3 "*" x y) z)
-          (calc-expr-3 "/" x (calc-expr-3 "*" y z)))
+          (calc-expr-3 "*" x (calc-expr-3 "/" y z)))
 
 (e-union ?(calc-expr-3 "/" x x) (num 1))
 (e-union ?(calc-expr-3 "*" x (num 1)) x)
