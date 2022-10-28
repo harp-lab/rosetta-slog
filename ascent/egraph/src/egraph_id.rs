@@ -69,8 +69,7 @@ fn gen_id(t: &str) -> ENodeId {
 }
 
 ascent! {
-    struct EGraphMatch;
-
+    struct EGraphData;
     // graph edge to e-class
     lattice root(ENodeId, Set<ENodeId>);
     lattice calc_expr_3_left(ENodeId, Sym, Set<ENodeId>);
@@ -81,7 +80,19 @@ ascent! {
     // in original e-graph enode don't have id, only e-class has
     relation e_node(ENodeId);
     e_node(e_id) <-- (calc_expr_3_left(e_id,_,_) || var(e_id,_) || num(e_id,_) || root(e_id, _));
+}
 
+ascent! {
+    struct EGraphMatch;
+
+    lattice root(ENodeId, Set<ENodeId>);
+    lattice calc_expr_3_left(ENodeId, Sym, Set<ENodeId>);
+    lattice calc_expr_3_right(ENodeId, Sym, Set<ENodeId>);
+    relation var(ENodeId, Sym);
+    relation num(ENodeId, i32);
+    relation e_node(ENodeId);
+    e_node(e_id) <-- (calc_expr_3_left(e_id,_,_) || var(e_id,_) || num(e_id,_) || root(e_id, _));
+    // >>>>>>>>>>>> above same as EGraphData
     // match helper rule
     relation do_match(Rc<PatternExpr>, ENodeId);
     relation e_node_match(Rc<PatternExpr>, ENodeId);
@@ -125,8 +136,8 @@ ascent! {
         , if let Calc(op, left_p, right_p) = pat.deref()
         , calc_expr_3_left(e_id, op, l_set), calc_expr_3_right(e_id, op, r_set)
         , e_node_match(left_p, l_matched), e_node_match(right_p, r_matched)
-        , if l_set.deref().contains(l_matched)
-        , if r_set.deref().contains(r_matched)
+        , if l_set.contains(l_matched)
+        , if r_set.contains(r_matched)
         ;
 
     e_node_match(pat, e_id) <-- do_match(pat, e_id), if let WildCard(mv) = pat.deref();
@@ -179,8 +190,8 @@ ascent! {
         , if let Calc(op, left_p, right_p) = pat.deref()
         , calc_expr_3_left(e_id, op, l_set), calc_expr_3_right(e_id, op, r_set)
         , e_node_match(left_p, l_matched), e_node_match(right_p, r_matched)
-        , if l_set.deref().contains(l_matched)
-        , if r_set.deref().contains(r_matched)
+        , if l_set.contains(l_matched)
+        , if r_set.contains(r_matched)
         ;
 
     e_node_match(pat, e_id) <-- do_match(pat, e_id), if let WildCard(mv) = pat.deref();
@@ -190,7 +201,7 @@ ascent! {
     e_node_match(pat, e_id) <--
         e_node_match(pat, matched_id)
         , (root(_, eq_set) || calc_expr_3_left(_, _, eq_set) || calc_expr_3_right(_, _, eq_set))
-        , if eq_set.deref().contains(matched_id)
+        , if eq_set.contains(matched_id)
         , for e_id in eq_set.deref()
         ;
     // <<<<<<<<<<<<<<<<<<<<<<< above this same as EGraphMatch
@@ -225,17 +236,26 @@ ascent! {
     calc_expr_3_left(e_id, op, Set::singleton(*node_to_union)) <--
         (do_uinon_id(old_id, node_to_union) || do_uinon_id(node_to_union, old_id))
         , calc_expr_3_left(e_id, op, eq_set)
-        , if eq_set.deref().contains(old_id)
+        , if eq_set.contains(old_id)
         ;
     calc_expr_3_right(e_id, op, Set::singleton(*node_to_union)) <--
         (do_uinon_id(old_id, node_to_union) || do_uinon_id(node_to_union, old_id))
         , calc_expr_3_right(e_id, op, eq_set)
-        , if eq_set.deref().contains(old_id)
+        , if eq_set.contains(old_id)
         ;
     root(e_id, Set::singleton(*node_to_union)) <--
         (do_uinon_id(old_id, node_to_union) || do_uinon_id(node_to_union, old_id))
         , root(e_id, eq_set)
-        , if eq_set.deref().contains(old_id)
+        , if eq_set.contains(old_id)
+        ;
+
+    // rebuild the graph, rebuild is expensive, only call by need
+    relation do_rebuild(bool);
+    calc_expr_3_left(e_id, op, eq2_set) <--
+        do_rebuild(true)
+        , calc_expr_3_left(e_id, op, eq1_set)
+        , (root(_,eq2_set) || calc_expr_3_left(_,_,eq2_set) || calc_expr_3_right(_,_,eq2_set))
+        , if !eq1_set.is_disjoint(eq2_set)
         ;
 
     // WARNING: intermediate output relation
@@ -258,7 +278,7 @@ ascent! {
         calc_expr_3_left(e_id, "*", l_set)
         , calc_expr_3_right(e_id, "*", r_set)
         , num(n1_id, 1)
-        , if r_set.deref().contains(n1_id)
+        , if r_set.contains(n1_id)
         , for a in l_set.deref()
         ;
 
@@ -282,13 +302,19 @@ ascent! {
         ;
 }
 
-fn e_match(g: &mut EGraphMatch, pattern: &Rc<PatternExpr>) {
-    g.do_match_input = vec![(pattern.clone(),)];
-    g.run();
-    g.do_match_input.clear();
+fn e_match(g: &EGraphData, pattern: &Rc<PatternExpr>) -> Vec<(BTreeSet<ENodeId>,)> {
+    let mut matched = EGraphMatch::default();
+    matched.root = g.root.clone();
+    matched.calc_expr_3_left = g.calc_expr_3_left.clone();
+    matched.calc_expr_3_right = g.calc_expr_3_right.clone();
+    matched.num = g.num.clone();
+    matched.var = g.var.clone();
+    matched.do_match_input = vec![(pattern.clone(),)];
+    matched.run();
+    matched.matched_eclass
 }
 
-fn e_saturate(g: &mut EGraphMatch) {
+fn e_saturate(g: &EGraphData) -> EGraphData {
     let mut rw_g = EGraphRewrite::default();
     rw_g.root = g.root.clone();
     rw_g.calc_expr_3_left = g.calc_expr_3_left.clone();
@@ -316,21 +342,25 @@ fn e_saturate(g: &mut EGraphMatch) {
             println!("Assign Id {:?} to new expression >> {:?}", new_id, ne.0);
             rw_g.e_node_match.push((ne.0.clone(), new_id));
         }
+        // NOTE: if clear a relation, all its indices need to be cleared too
         rw_g.new_expr.clear();
+        rw_g.new_expr_indices_0.clear();    
     }
     // println!("uinon_ids {:?}", rw_g.uinon_id);
-    // swap back
-    g.root = rw_g.root;
-    g.calc_expr_3_left = rw_g.calc_expr_3_left;
-    g.calc_expr_3_right = rw_g.calc_expr_3_right;
-    g.var = rw_g.var;
-    g.num = rw_g.num;
-    g.e_node = rw_g.e_node;
+    
+    let mut saturated_graph = EGraphData::default();
+    saturated_graph.root = rw_g.root;
+    saturated_graph.calc_expr_3_left = rw_g.calc_expr_3_left;
+    saturated_graph.calc_expr_3_right = rw_g.calc_expr_3_right;
+    saturated_graph.var = rw_g.var;
+    saturated_graph.num = rw_g.num;
+    saturated_graph.e_node = rw_g.e_node;
+    saturated_graph
 }
 
-fn init_test_egraph() -> EGraphMatch {
+fn init_test_egraph() -> EGraphData {
     // (a * 2) / 2 => a
-    let mut g = EGraphMatch::default();
+    let mut g = EGraphData::default();
     let calc_id_1 = gen_id("Calc");
     let calc_id_2 = gen_id("Calc");
     let var_id_1 = gen_id("Var");
@@ -351,6 +381,10 @@ fn init_test_egraph() -> EGraphMatch {
     g
 }
 
+fn to_graph(test_g: &EGraphData) {
+    
+}
+
 // test entrance
 pub fn run_egraph_id() {
     let mut test_g = init_test_egraph();
@@ -360,9 +394,9 @@ pub fn run_egraph_id() {
     // e_match(&mut test_g, &test_match_pat_1);
     // println!("Match res {:?}", test_g.e_node_match);
 
-    e_saturate(&mut test_g);
+    test_g = e_saturate(&test_g);
     let test_match_pat_2 = Rc::new(Var("a"));
-    e_match(&mut test_g, &test_match_pat_2);
+    let matched_test_2 = e_match(&test_g, &test_match_pat_2);
 
     // print the egraph
     println!("Vars: {:?}", test_g.var);
@@ -385,6 +419,6 @@ pub fn run_egraph_id() {
     println!("Saturated!");
     println!(
         "Match {:?} got : {:?}",
-        test_match_pat_2, test_g.matched_eclass
+        test_match_pat_2, matched_test_2
     );
 }
