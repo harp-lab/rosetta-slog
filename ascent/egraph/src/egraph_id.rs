@@ -1,12 +1,12 @@
 /**
  * Another version of e-graph
  *  - Use linked list style fact to represent a graph
- *  - Datalog code will suspend when it need a new fact id by through facts in `new_expr` rule
+ *  - Datalog code will be suspended when it needs a new fact id by throw facts in `new_expr` rule
  *  - id is generated in rust code, and added back by editing `e_node_match` rule, then call `run` again
- *  - id is generated outside so it's possible there is loop in graph (can be used to represent infinite expression)
- *  - e-class here is implemented by a seris graph edge relation (which is a Set lattice in Ascent)
- *  - EMatch and Rewrite is seperated into 2 different programs, mainly because write rule generate a lot of intermediate data,
- *    however these EDB/IDB won't be used in normal matching task at all. during rewrite, seems match only e-node is more
+ *  - id is generated outside so it's possible there is a loop in graph (can be used to represent infinite expression)
+ *  - e-class here is implemented by a series graph edge relation (which is a Set lattice in Ascent)
+ *  - EMatch and Rewrite is separated into 2 different programs, mainly because write rule generate a lot of intermediate data,
+ *    however these EDB/IDB won't be used in normal matching task at all. During rewriting, seems matching only e-node is more
  *    useful than match e-class (this is like inlining in souffle, I want a kind of manually "GC").
  *  - e-match here is not using relational e-matching technique
  * TODO:
@@ -133,7 +133,7 @@ ascent! {
     e_node_match(pat, e_id) <-- do_match(pat, e_id), if let WildCard(mv) = pat.deref();
     e_node_match(pat, e_id) <-- do_match(pat, e_id), if let ENode(m_id) = pat.deref(), if e_id == m_id;
 
-    // need travese the graph to pull all eq_set, this is slow
+    // need traverse the graph to pull all eq_set, this is slow
     e_node_match(pat, e_id) <-- 
         e_node_match(pat, matched_id)
         , (root(_, eq_set) || calc_expr_3_left(_, _, eq_set) || calc_expr_3_right(_, _, eq_set))
