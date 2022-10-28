@@ -12,7 +12,6 @@
  * TODO:
  *  - Add cost function, need dig more into egg paper
  */
-
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::ops::Deref;
@@ -134,7 +133,7 @@ ascent! {
     e_node_match(pat, e_id) <-- do_match(pat, e_id), if let ENode(m_id) = pat.deref(), if e_id == m_id;
 
     // need traverse the graph to pull all eq_set, this is slow
-    e_node_match(pat, e_id) <-- 
+    e_node_match(pat, e_id) <--
         e_node_match(pat, matched_id)
         , (root(_, eq_set) || calc_expr_3_left(_, _, eq_set) || calc_expr_3_right(_, _, eq_set))
         , if eq_set.deref().contains(matched_id)
@@ -188,7 +187,7 @@ ascent! {
     e_node_match(pat, e_id) <-- do_match(pat, e_id), if let ENode(m_id) = pat.deref(), if e_id == m_id;
 
         // need travese the graph to pull all eq_set
-    e_node_match(pat, e_id) <-- 
+    e_node_match(pat, e_id) <--
         e_node_match(pat, matched_id)
         , (root(_, eq_set) || calc_expr_3_left(_, _, eq_set) || calc_expr_3_right(_, _, eq_set))
         , if eq_set.deref().contains(matched_id)
@@ -200,13 +199,13 @@ ascent! {
     relation do_union(Rc<PatternExpr>, ENodeId);
     // temporary rule
     relation do_add_new_expr(Rc<PatternExpr>);
-    relation equiv_id(ENodeId, ENodeId);
+    relation uinon_id(ENodeId, ENodeId);
     do_add_new_expr(pat) <-- do_union(pat, _);
     do_add_new_expr(l), do_add_new_expr(r) <-- do_add_new_expr(pat), if let Calc(op, l, r) = pat.deref();
     do_match(p, e) <-- do_add_new_expr(p), e_node(e);
 
     // add generated new expression into database
-    equiv_id(e_id, new_e_id) <-- do_union(pat, e_id), e_node_match(pat, new_e_id);
+    uinon_id(e_id, new_e_id) <-- do_union(pat, e_id), e_node_match(pat, new_e_id);
     num(new_e_id, n) <--
         do_add_new_expr(pat), e_node_match(pat, new_e_id)
         , if let Num(n) = pat.deref()
@@ -224,17 +223,17 @@ ascent! {
 
     // Union equivalent node
     calc_expr_3_left(e_id, op, Set::singleton(*node_to_union)) <--
-        (equiv_id(old_id, node_to_union) || equiv_id(node_to_union, old_id))
+        (uinon_id(old_id, node_to_union) || uinon_id(node_to_union, old_id))
         , calc_expr_3_left(e_id, op, eq_set)
         , if eq_set.deref().contains(old_id)
         ;
     calc_expr_3_right(e_id, op, Set::singleton(*node_to_union)) <--
-        (equiv_id(old_id, node_to_union) || equiv_id(node_to_union, old_id))
+        (uinon_id(old_id, node_to_union) || uinon_id(node_to_union, old_id))
         , calc_expr_3_right(e_id, op, eq_set)
         , if eq_set.deref().contains(old_id)
         ;
     root(e_id, Set::singleton(*node_to_union)) <--
-        (equiv_id(old_id, node_to_union) || equiv_id(node_to_union, old_id))
+        (uinon_id(old_id, node_to_union) || uinon_id(node_to_union, old_id))
         , root(e_id, eq_set)
         , if eq_set.deref().contains(old_id)
         ;
@@ -255,7 +254,7 @@ ascent! {
         ;
 
     // TODO: need rewrite this rule use do_union
-    equiv_id(a, e_id) <--
+    uinon_id(a, e_id) <--
         calc_expr_3_left(e_id, "*", l_set)
         , calc_expr_3_right(e_id, "*", r_set)
         , num(n1_id, 1)
@@ -280,7 +279,7 @@ ascent! {
         , let new_pat_expr = Rc::new(Calc("*", Rc::new(ENode(*a_id))
                                              , Rc::new(Calc("/" , Rc::new(ENode(*b_id))
                                                                 , Rc::new(ENode(*c_id))))))
-        ; 
+        ;
 }
 
 fn e_match(g: &mut EGraphMatch, pattern: &Rc<PatternExpr>) {
@@ -319,7 +318,7 @@ fn e_saturate(g: &mut EGraphMatch) {
         }
         rw_g.new_expr.clear();
     }
-    // println!("equiv_ids {:?}", rw_g.equiv_id);
+    // println!("uinon_ids {:?}", rw_g.uinon_id);
     // swap back
     g.root = rw_g.root;
     g.calc_expr_3_left = rw_g.calc_expr_3_left;
@@ -384,6 +383,8 @@ pub fn run_egraph_id() {
     }
 
     println!("Saturated!");
-    println!("Match {:?} got : {:?}", test_match_pat_2, test_g.matched_eclass);
-
+    println!(
+        "Match {:?} got : {:?}",
+        test_match_pat_2, test_g.matched_eclass
+    );
 }
