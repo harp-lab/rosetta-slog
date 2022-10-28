@@ -196,16 +196,16 @@ ascent! {
     // <<<<<<<<<<<<<<<<<<<<<<< above this same as EGraphMatch
 
     // union a enode to everything match given pattern
-    relation do_union(Rc<PatternExpr>, ENodeId);
+    relation do_union_pattern(Rc<PatternExpr>, ENodeId);
     // temporary rule
     relation do_add_new_expr(Rc<PatternExpr>);
-    relation uinon_id(ENodeId, ENodeId);
-    do_add_new_expr(pat) <-- do_union(pat, _);
+    relation do_uinon_id(ENodeId, ENodeId);
+    do_add_new_expr(pat) <-- do_union_pattern(pat, _);
     do_add_new_expr(l), do_add_new_expr(r) <-- do_add_new_expr(pat), if let Calc(op, l, r) = pat.deref();
     do_match(p, e) <-- do_add_new_expr(p), e_node(e);
 
     // add generated new expression into database
-    uinon_id(e_id, new_e_id) <-- do_union(pat, e_id), e_node_match(pat, new_e_id);
+    do_uinon_id(e_id, new_e_id) <-- do_union_pattern(pat, e_id), e_node_match(pat, new_e_id);
     num(new_e_id, n) <--
         do_add_new_expr(pat), e_node_match(pat, new_e_id)
         , if let Num(n) = pat.deref()
@@ -223,17 +223,17 @@ ascent! {
 
     // Union equivalent node
     calc_expr_3_left(e_id, op, Set::singleton(*node_to_union)) <--
-        (uinon_id(old_id, node_to_union) || uinon_id(node_to_union, old_id))
+        (do_uinon_id(old_id, node_to_union) || do_uinon_id(node_to_union, old_id))
         , calc_expr_3_left(e_id, op, eq_set)
         , if eq_set.deref().contains(old_id)
         ;
     calc_expr_3_right(e_id, op, Set::singleton(*node_to_union)) <--
-        (uinon_id(old_id, node_to_union) || uinon_id(node_to_union, old_id))
+        (do_uinon_id(old_id, node_to_union) || do_uinon_id(node_to_union, old_id))
         , calc_expr_3_right(e_id, op, eq_set)
         , if eq_set.deref().contains(old_id)
         ;
     root(e_id, Set::singleton(*node_to_union)) <--
-        (uinon_id(old_id, node_to_union) || uinon_id(node_to_union, old_id))
+        (do_uinon_id(old_id, node_to_union) || do_uinon_id(node_to_union, old_id))
         , root(e_id, eq_set)
         , if eq_set.deref().contains(old_id)
         ;
@@ -246,7 +246,7 @@ ascent! {
     // generate potential rewrite, union the generated expression into graph
     // during this time new expression's id hasn't been assigned yet
     // NOTE: set lattice column can't be unified?
-    do_union(new_pat_expr, e_id) <--
+    do_union_pattern(new_pat_expr, e_id) <--
         calc_expr_3_left(e_id, "/", l_set)
         , calc_expr_3_right(e_id, "/", r_set)
         , if l_set.deref() == r_set.deref()
@@ -254,7 +254,7 @@ ascent! {
         ;
 
     // TODO: need rewrite this rule use do_union
-    uinon_id(a, e_id) <--
+    do_uinon_id(a, e_id) <--
         calc_expr_3_left(e_id, "*", l_set)
         , calc_expr_3_right(e_id, "*", r_set)
         , num(n1_id, 1)
@@ -267,7 +267,7 @@ ascent! {
     //     , let new_pat_expr = Rc::new(Calc("*", Rc::new(ENode(*e_id)), Rc::new(Num(1))))
     //     ;
 
-    do_union(new_pat_expr, div_e_id) <--
+    do_union_pattern(new_pat_expr, div_e_id) <--
         calc_expr_3_left(div_e_id, "/", l_div_set)
         , calc_expr_3_right(div_e_id, "/", r_div_set)
         , for div_l_id in l_div_set.deref()
