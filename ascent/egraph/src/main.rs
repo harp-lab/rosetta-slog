@@ -80,6 +80,9 @@ fn run_egraph_test() {
 
     println!("Saturated!");
     println!("Match {:?} got : {:?}", test_match_pat_2, matched_test_2);
+    test_g = rebuild(&test_g);
+    test_g.run();
+    println!("DOT: \n{}", graph_to_dot(&test_g));
 }
 
 fn main() {

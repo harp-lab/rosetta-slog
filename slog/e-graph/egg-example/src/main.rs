@@ -24,10 +24,10 @@ fn main()
     
         // rw!("add-0"; "(+ ?x 0)" => "?x"),
         // rw!("mul-0"; "(* ?x 0)" => "0"),
-        // rw!("mul-1"; "(* ?x 1)" => "?x"),
-        // rw!("test1"; "(/ (* ?x ?y) ?z)" => "(* ?x (/ ?y ?z))"),
-        // rw!("test2"; "(/ ?x ?x)" => "1"),
-        rw!("test3"; "?x" => "(* ?x 1)")
+        rw!("mul-1"; "(* ?x 1)" => "?x"),
+        rw!("test1"; "(/ (* ?x ?y) ?z)" => "(* ?x (/ ?y ?z))"),
+        rw!("test2"; "(/ ?x ?x)" => "1"),
+        // rw!("test3"; "?x" => "(* ?x 1)")
     ];
     
     // let start = "(/ (* (/ 2 3) (/ 3 2)) 1)".parse().unwrap();
@@ -44,7 +44,7 @@ fn main()
             let p = raw_prog.parse().unwrap();
             let runner = Runner::default().with_expr(&p).run(rules);
             let extractor = Extractor::new(&runner.egraph, AstSize);
-            // println!("{:?}", runner.egraph.dot());
+            println!("{}", runner.egraph.dot());
             runner.egraph.dot().to_svg("./out.svg").unwrap();
             let (best_cost, best_expr) = extractor.find_best(runner.roots[0]);
             print!("Original program: {} \n ====> Optimized {}, with cost {} \n", raw_prog, best_expr, best_cost);

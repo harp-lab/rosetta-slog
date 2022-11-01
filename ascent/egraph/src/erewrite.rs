@@ -1,7 +1,7 @@
 /**
  * Rewrite and saturate a e graph
  *  - Datalog code will be suspended when it needs a new fact id by throw facts in `new_expr` rule
- *  - id is generated in rust code, and added back by editing `e_node_match` rule, then call `run` again
+ *  - id is generated in rust code, and added back by editing `assign_new_expr_id` rule, then call `run` again
  *  - id is generated outside so it's possible there is a loop in graph (can be used to represent infinite expression)
  */
 use std::ops::Deref;
@@ -70,25 +70,27 @@ ascent! {
     // union a enode to everything match given pattern
     relation do_union_pattern(Rc<PatternExpr>, ENodeId);
     // temporary rule
-    relation do_add_new_expr(Rc<PatternExpr>);
+    relation do_add_new_expr(Rc<PatternExpr>);          // output
+    relation assign_new_expr_id(Rc<PatternExpr>, ENodeId);     // input
     relation do_uinon_id(ENodeId, ENodeId);
     do_add_new_expr(pat) <-- do_union_pattern(pat, _);
     do_add_new_expr(l), do_add_new_expr(r) <-- do_add_new_expr(pat), if let Calc(op, l, r) = pat.deref();
     do_match(p, e) <-- do_add_new_expr(p), e_node(e);
+    e_node_match(pat, id) <-- assign_new_expr_id(pat, id);
 
     // add generated new expression into database
     do_uinon_id(e_id, new_e_id) <-- do_union_pattern(pat, e_id), e_node_match(pat, new_e_id);
     num(new_e_id, n) <--
-        do_add_new_expr(pat), e_node_match(pat, new_e_id)
+        do_add_new_expr(pat), assign_new_expr_id(pat, new_e_id)
         , if let Num(n) = pat.deref()
         ;
     var(new_e_id, n) <--
-        do_add_new_expr(pat), e_node_match(pat, new_e_id)
+        do_add_new_expr(pat), assign_new_expr_id(pat, new_e_id)
         , if let Var(n) = pat.deref()
         ;
     calc_expr_3_left(new_e_id, op, Set::singleton(*l_id))
     , calc_expr_3_right(new_e_id, op, Set::singleton(*r_id)) <--
-        do_add_new_expr(pat), e_node_match(pat, new_e_id)
+        do_add_new_expr(pat), assign_new_expr_id(pat, new_e_id)
         , if let Calc(op, lp, rp) = pat.deref()
         , e_node_match(lp, l_id), e_node_match(rp, r_id)
         ;
@@ -173,8 +175,17 @@ pub fn e_saturate(g: &EGraphData) -> EGraphData {
     rw_g.e_node = g.e_node.clone();
 
     // loop until no new e-node generated
+    // NOTE: if clear a relation, all its indices need to be cleared too
     loop {
+        // clean temporary out before run
+        rw_g.new_expr.clear();
+        rw_g.new_expr_indices_0.clear();
         rw_g.run();
+        // clean temporary in after run
+        rw_g.assign_new_expr_id.clear();
+        rw_g.assign_new_expr_id_indices_.clear();
+        rw_g.assign_new_expr_id_indices_0.clear();
+        rw_g.assign_new_expr_id_indices_0_1.clear();
         if rw_g.new_expr.is_empty() {
             // println!("Do union: {:?}", rw_g.do_union);
             break;
@@ -189,11 +200,9 @@ pub fn e_saturate(g: &EGraphData) -> EGraphData {
                 _ => gen_id("None"),
             };
             println!("Assign Id {:?} to new expression >> {:?}", new_id, ne.0);
-            rw_g.e_node_match.push((ne.0.clone(), new_id));
+            rw_g.assign_new_expr_id.push((ne.0.clone(), new_id));
         }
-        // NOTE: if clear a relation, all its indices need to be cleared too
-        rw_g.new_expr.clear();
-        rw_g.new_expr_indices_0.clear();
+
     }
     // println!("uinon_ids {:?}", rw_g.uinon_id);
 
