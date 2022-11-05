@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeSet};
 /**
  * EGraph representation in Ascent
  * - Use linked list style fact to represent a graph
@@ -12,8 +12,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ascent::lattice::set::Set;
 use ascent::*;
-
-use egg::{self, rewrite as rw, EGraph, Rewrite, SymbolLang};
 
 pub type Sym = &'static str;
 
@@ -29,7 +27,9 @@ pub enum PatternExpr {
     Num(i32),
     Calc(Sym, Rc<PatternExpr>, Rc<PatternExpr>),
     WildCard(Sym),
-    ENode(ENodeId),
+    // ENode(ENodeId),
+    // eclass only store the represenive id in inside an e-calss
+    EClass(ENodeId)
 }
 
 use crate::graph::ENodeId::*;

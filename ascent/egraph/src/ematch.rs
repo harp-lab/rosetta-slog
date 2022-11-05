@@ -68,7 +68,14 @@ ascent! {
         ;
 
     e_node_match(pat, e_id) <-- do_match(pat, e_id), if let WildCard(mv) = pat.deref();
-    e_node_match(pat, e_id) <-- do_match(pat, e_id), if let ENode(m_id) = pat.deref(), if e_id == m_id;
+    e_node_match(pat, e_id) <-- 
+        do_match(pat, e_id)
+        , if let EClass(m_representive_node) = pat.deref()
+        , (root(_, eq_set) || calc_expr_3_left(_, _, eq_set) || calc_expr_3_right(_, _, eq_set))
+        , if eq_set.contains(e_id)
+        // , if !eq_set.0.is_disjoint(m_set)
+        , if eq_set.contains(m_representive_node)
+        ;
 
     // need traverse the graph to pull all eq_set, this is slow
     e_node_match(pat, e_id) <--

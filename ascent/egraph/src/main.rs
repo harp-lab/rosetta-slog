@@ -1,3 +1,5 @@
+#![feature(map_first_last)]
+
 /*
  * E-graph, Ascent version
  *  - EMatch and Rewrite is separated into 2 different programs, mainly because write rule generate a lot of intermediate data,
@@ -25,24 +27,28 @@ use ematch::*;
 use erewrite::*;
 
 fn init_test_egraph() -> EGraphData {
-    // (a * 2) / 2 => a
+    // ((a * 2) / 2) * 1 => a
     let mut g = EGraphData::default();
+    // let calc_id_0 = gen_id("Calc");
     let calc_id_1 = gen_id("Calc");
     let calc_id_2 = gen_id("Calc");
     let var_id_1 = gen_id("Var");
     let num_id_1 = gen_id("Num");
+    let num_id_2 = gen_id("Num");
     g.calc_expr_3_left = vec![
+        // (calc_id_0, "*", Set::singleton(calc_id_2)),
         (calc_id_1, "*", Set::singleton(var_id_1)),
         (calc_id_2, "/", Set::singleton(calc_id_1)),
     ];
     g.calc_expr_3_right = vec![
+        // (calc_id_0, "*", Set::singleton(num_id_2)),
         (calc_id_1, "*", Set::singleton(num_id_1)),
         (calc_id_2, "/", Set::singleton(num_id_1)),
     ];
     g.root = vec![(Id("Root", 1), Set::singleton(calc_id_2))];
 
     g.var = vec![(var_id_1, "a")];
-    g.num = vec![(num_id_1, 2)];
+    g.num = vec![(num_id_1, 2), (num_id_2, 1)]; 
     g.run();
     g
 }
@@ -50,14 +56,20 @@ fn init_test_egraph() -> EGraphData {
 // test entrance
 fn run_egraph_test() {
     let mut test_g = init_test_egraph();
-    // let w_a = Rc::new(WildCard("a"));
-    // let w_b = Rc::new(WildCard("b"));
-    // let test_match_pat_1 = Rc::new(Calc("*", w_a.clone(), w_b.clone()));
-    // e_match(&mut test_g, &test_match_pat_1);
-    // println!("Match res {:?}", test_g.e_node_match);
+    let test_match_pat_1 = Rc::new(Calc(
+        "*",
+        Rc::new(EClass(Id("Calc", 0))),
+        Rc::new(Num(1)),
+    ));
+    let matched_test_1 = e_match(&test_g, &test_match_pat_1);
+    println!("Match {:?} get res {:?}", test_match_pat_1, matched_test_1);
 
-    test_g = e_saturate(&test_g);
-    let test_match_pat_2 = Rc::new(Var("a"));
+    test_g = e_saturate(&test_g, 10);
+    let test_match_pat_2 = Rc::new(Calc(
+        "*",
+        Rc::new(Calc("*", Rc::new(Var("a")), Rc::new(Num(1)))),
+        Rc::new(Num(1)),
+    ));
     let matched_test_2 = e_match(&test_g, &test_match_pat_2);
 
     // print the egraph
@@ -71,7 +83,7 @@ fn run_egraph_test() {
     }
     for (e_id, op, eq_set) in &test_g.calc_expr_3_right {
         node_eq_sets.insert(eq_set.deref().clone());
-        println!("right set {:?} {:?} >>> {:?}", e_id, op, eq_set.deref());
+        println!("right set {:?} {:?} >>> {:?}" , e_id, op, eq_set.deref());
     }
     for (e_id, eq_set) in &test_g.root {
         node_eq_sets.insert(eq_set.deref().clone());
@@ -79,8 +91,10 @@ fn run_egraph_test() {
     }
 
     println!("Saturated!");
+    let matched_test_1 = e_match(&test_g, &test_match_pat_1);
+    println!("Match {:?} get res {:?}", test_match_pat_1, matched_test_1);
     println!("Match {:?} got : {:?}", test_match_pat_2, matched_test_2);
-    test_g = rebuild(&test_g);
+    // test_g = rebuild(&test_g);
     test_g.run();
     println!("DOT: \n{}", graph_to_dot(&test_g));
 }
