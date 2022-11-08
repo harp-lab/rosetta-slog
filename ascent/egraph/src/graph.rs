@@ -29,7 +29,7 @@ pub enum PatternExpr {
     WildCard(Sym),
     // ENode(ENodeId),
     // eclass only store the represenive id in inside an e-calss
-    EClass(ENodeId)
+    EClass(BTreeSet<ENodeId>)
 }
 
 use crate::graph::ENodeId::*;
@@ -38,7 +38,7 @@ use crate::graph::ENodeId::*;
 static GLOBAL_CALC_COUNT: AtomicUsize = AtomicUsize::new(0);
 static GLOBAL_NUM_COUNT: AtomicUsize = AtomicUsize::new(0);
 static GLOBAL_VAR_COUNT: AtomicUsize = AtomicUsize::new(0);
-static GLOBAL_ROOT_COUNT: AtomicUsize = AtomicUsize::new(0);
+// static GLOBAL_ROOT_COUNT: AtomicUsize = AtomicUsize::new(0);
 pub fn gen_id(t: &str) -> ENodeId {
     if t == "Var" {
         Id("Var", GLOBAL_VAR_COUNT.fetch_add(1, Ordering::SeqCst))
@@ -153,7 +153,7 @@ pub fn graph_to_dot(g: &EGraphData) -> String {
         }
         dot_str.push_str("  }\n");
     }
-    for (e_id, op, to_eq_set) in g.calc_expr_3_left.iter() {
+    for (e_id, _, to_eq_set) in g.calc_expr_3_left.iter() {
         let to_eq_list: Vec<ENodeId> = to_eq_set.deref().clone().into_iter().collect();
         if let Some(to_c_id) = class_map.get(&to_eq_list) {
             let from_c_id = in_class(&class_map, *e_id);
@@ -168,7 +168,7 @@ pub fn graph_to_dot(g: &EGraphData) -> String {
             }
         }
     }
-    for (e_id, op, to_eq_set) in g.calc_expr_3_right.iter() {
+    for (e_id, _, to_eq_set) in g.calc_expr_3_right.iter() {
         let to_eq_list: Vec<ENodeId> = to_eq_set.deref().clone().into_iter().collect();
         if let Some(to_c_id) = class_map.get(&to_eq_list) {
             let from_c_id = in_class(&class_map, *e_id);

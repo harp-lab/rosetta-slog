@@ -12,7 +12,7 @@ edge(3,4,9).
 spath(X,Y, D) <- edge(X,Y,D).
 
 --
-spath(X,Y,min<D>) <- spath(X,Z,D1), edge(Z,Y,D2), D=D1+D2.
+$query_tuple(X,Y,min<D>) <- $query_tuple(X,Z,D1), edge(Z,Y,D2), D=D1+D2.
 
 (spath .. .. 1)
 (helper .. ..  ..)

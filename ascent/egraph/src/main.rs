@@ -1,6 +1,4 @@
-#![feature(map_first_last)]
-
-/*
+    /*
  * E-graph, Ascent version
  *  - EMatch and Rewrite is separated into 2 different programs, mainly because write rule generate a lot of intermediate data,
  *    however these EDB/IDB won't be used in normal matching task at all. During rewriting, seems matching only e-node is more
@@ -64,7 +62,7 @@ fn run_egraph_test() {
     let matched_test_1 = e_match(&test_g, &test_match_pat_1);
     println!("Match {:?} get res {:?}", test_match_pat_1, matched_test_1);
 
-    test_g = e_saturate(&test_g, 10);
+    test_g = e_saturate(&test_g, 2);
     let test_match_pat_2 = Rc::new(Calc(
         "*",
         Rc::new(Calc("*", Rc::new(Var("a")), Rc::new(Num(1)))),
@@ -82,7 +80,7 @@ fn run_egraph_test() {
         println!("left set {:?} {:?} >>> {:?}", e_id, op, eq_set.deref());
     }
     for (e_id, op, eq_set) in &test_g.calc_expr_3_right {
-        node_eq_sets.insert(eq_set.deref().clone());
+        node_eq_sets.insert(eq_set.deref().clone()); 
         println!("right set {:?} {:?} >>> {:?}" , e_id, op, eq_set.deref());
     }
     for (e_id, eq_set) in &test_g.root {
