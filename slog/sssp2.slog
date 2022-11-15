@@ -11,11 +11,14 @@
 
 (source-node 1)
 [(upper-bound {sum a-edge _ _}) <--]
+[(node n1) (node n2) <-- (a-edge n1 n2)]
+[(path n n 0) <-- (node n)]
 [(path from to w) <-- (a-edge from to w)]
 [(path from to {+ w l}) <--
     (upper-bound h)
     (a-edge mid to w)
     (path from mid l)
+    (=/= from to)
     (< l {- h w})]
 
 [(shortest-path from to {minimum path from to}) <--
