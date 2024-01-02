@@ -1,0 +1,22 @@
+{
+    "prettifySymbolsMode.substitutions": [
+        {
+            "language": [
+                "slog",
+                {
+                    "pattern": "**/*.slog"
+                }
+            ],
+            "substitutions": [
+                {"ugly": "'longrightarrow~", "pretty": "⟶"},
+                {"ugly": "'rightarrow~", "pretty": "→"},
+                {"ugly": "'Rightarrow~", "pretty": "⇒"},
+                {"ugly": "'lambda~", "pretty": "λ"},
+                {"ugly": "'Gamma~", "pretty": "Γ"},
+                {"ugly": "'vdash~", "pretty": "⊢"},
+                {"ugly": "'mt~", "pretty": "Ø"},
+                {"ugly": "'in~", "pretty": "∈"}
+            ]
+        }
+    ]
+}
