@@ -4,9 +4,6 @@
 ('in~ ?(ctx x T res) x T)
 [('in~ res x1 T1) --> ('in~ ?(ctx x T res) x1 T1)]
 
-(all-context ('mt~))
-(all-context ?(ctx x T res))
-
 ; first naive attempt at type checking
 ; unit
 ; (has-type {all-context} ?(true) (Bool))
@@ -48,38 +45,4 @@
 [('pi~-typed e C)
  (can-have-type e T)
  -->
- (checked ('vdash~ e T C))]
-
-; assembly proof tree
-[(= judegement ('vdash~ (true) T C))
- (checked judegement)
- -->
- (proof judegement (T-True) )]
-
-[(= judegement ('vdash~ (false) T C))
- (checked judegement)
- -->
- (proof judegement (T-False))]
-
-[(= judegement ('vdash~ (var x) T C))
- ('in~ C x T)
- (checked judegement)
- -->
- (proof judegement (T-Var))]
-
-[(debug ) <-- ('vdash~ ('lambda~ x T1 b) ('longrightarrow~ T1 T2) C)]
-
-[(= judegement ('vdash~ ('lambda~ x T1 b) ('longrightarrow~ T1 T2) C))
- (checked judegement)
- (proof ('vdash~ b T2 (ctx x T1 C)) pf-b)
- -->
- (proof judegement (T-Abs pf-b))]
-
-[(= judegement ('vdash~ (app e1 e2) T C))
- (checked judegement)
- (proof ('vdash~ e1 ('longrightarrow~ T1 T) C) pf-e1)
- (proof ('vdash~ e2 T1 C) pf-e2)
- -->
- (proof judegement (T-App pf-e1 pf-e2))]
-
-(found-proof {proof ('vdash~ (app ('lambda~ "x" (Bool) (var "x")) (true)) (Bool) ('mt~))})
+ (well-form-type ('vdash~ e T C))]

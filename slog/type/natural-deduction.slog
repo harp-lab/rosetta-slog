@@ -1,0 +1,190 @@
+; This is a example of how slog type checker check type for STLC
+; and how we construct a checked intuitionistic logic proof tree for founded proofs
+
+; helper functions -----------------------------
+('mt~)
+('in~ ?(ctx x T res) x T)
+[('in~ res x1 T1) --> ('in~ ?(ctx x T res) x1 T1)]
+
+
+; type checker ---------------------------------
+
+; first naive attempt at type checking
+; unit
+; (has-type {all-context} ?(true) (Bool))
+; (has-type {all-context} ?(false) (Bool))
+; [(has-type C ?(app e1 e2) T) <--
+;     (has-type C e1 ('longrightarrow~ T1 T))
+;     (has-type C e2 T1)]
+; [(has-type (ctx x T1 Cp) ?('lambda~ x T1 b) ('longrightarrow~ T1 T2)) <--
+;     (has-type Cp b T2)]
+; [(has-type C ?(var x) T) <--
+;     ('in~ C x T)]
+
+(top (app ('lambda~ "x" (Bool) (var "x")) (true)))
+(pass ?(has-type C (app ('lambda~ "x" (Bool) (var "x")) (true)) T))
+; this proof search will fail, because just from bottom up, when system sees
+; (var "x") it has no idea what context "x" is in, so it can't find a type for
+; it.
+
+; using co function transformation
+; https://szabta89.github.io/publications/inca-typechecking.pdf
+(can-have-type ?(true) (Bool))
+(can-have-type ?(false) (Bool))
+[(can-have-type ?(app e1 e2) T) <--
+    (can-have-type e1 ('longrightarrow~ T1 T))
+    (can-have-type e2 T1)]
+
+[(can-have-type ?('lambda~ x T1 b) ('longrightarrow~ T1 T2)) <--
+    (can-have-type b T2)]
+
+[(can-have-type ?(var x) T) <--
+    ('pi~-typed (var x) C)
+    ('in~ C x T)]
+
+[('pi~-typed e1 C) <-- ('pi~-typed (app e1 e2) C)]
+[('pi~-typed e2 C) <-- ('pi~-typed (app e1 e2) C)]
+[('pi~-typed b (ctx x T1 C)) <-- ('pi~-typed ('lambda~ x T1 b) C)]
+[('pi~-typed e ('mt~)) <-- (top e)]
+
+[('pi~-typed e C)
+ (can-have-type e T)
+ -->
+ (well-form-type ('vdash~ e T C))]
+
+; definition of natural deduction rules -----------------
+; typing rules
+; in slog we can make a special relation "'Downarrow~" for natual deduction
+; e.g
+; ('Downarrow~ (premise (foo)) (conclusion (bar)))
+; of course in real world a conclusion can have infinity premises
+; but list in datalog is hard to use and will make it not parallelizable
+; so we hand unrolling the list of premises, and limit the max to 5
+
+('Downarrow~ "T-True"
+    ('mt~)
+    ; ------------
+    (conclusion ?('vdash~ (true) (Bool) ('mt~))))
+
+('Downarrow~ "T-False"
+    ('mt~)
+    ; ------------
+    (conclusion ?('vdash~ (false) (Bool) ('mt~))))
+
+('Downarrow~ "T-Var"
+    (premise1 ?('in~ C x T))
+    ; ------------
+    (conclusion ?('vdash~ (var x) T C)))
+
+('Downarrow~ "T-Abs"
+    (premise1 ?('vdash~ b T2 (ctx x T1 C)))
+    ; ------------
+    (conclusion ?('vdash~ ('lambda~ x T1 b) ('longrightarrow~ T1 T2) C)))
+
+('Downarrow~ "T-App"
+    (premise2 ?('vdash~ e1 ('longrightarrow~ T1 T) C)
+              ?('vdash~ e2 T1 C))
+    ; ------------
+    (conclusion ?('vdash~ (app e1 e2) T C)))
+
+; assuming context function call is correct
+; all "functional call" result need to be tabled because we are in datalog
+(fact ('mt~))
+(fact ?('in~ (ctx x T res) x T))
+
+[(fact f) --> (theorem (proof f "FACT" ('mt~)))]
+
+; a natural deudction rule can be applied, iff there are proofs
+; for all its premises
+; a proof is either a fact in current database
+; a proof tree like (proof judegement rule-name (sub-proof for all premise in rule-name)) 
+
+; e.g.
+; tautology, our database must have following proof facts
+(proof ('vdash~ (true) (Bool) ('mt~))
+    "T-True"
+    ('mt~))
+
+; ---------------------------------------------
+; Implemenation of intutionistic proof checking
+
+; popluating proof check request
+[(check-proof (proof judegement rule-name (sub-proof1 sub-pf1)))
+ -->
+ (check-proof sub-pf1)]
+
+[(check-proof (proof judegement rule-name (sub-proof2 sub-pf1 sub-pf2)))
+ -->
+ (check-proof sub-pf1)
+ (check-proof sub-pf2)]
+
+; we can check whether a proof tree is valid using slog rule
+; base case, if premise for a proof empty then it is valid
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name ('mt~)))
+ ('Downarrow~ rule-name ('mt~) (conclusion judegement))
+ -->
+ (theorem proof-obj)]
+
+; inductive cases
+; if all premise in a applied rule hold(or we say has a theorem/fact attach to it) then
+; conclusion hold(is a theorem)
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof1 (proof pr1 rule-for-pr1 rest-proof-pr1))))
+ ('Downarrow~ rule-name (premise1 pr1) (conclusion judegement))
+ (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
+ -->
+ (theorem proof-obj)]
+
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof2 (proof pr1 rule-for-pr1 rest-proof-pr1)
+                    (proof pr2 rule-for-pr2 rest-proof-pr2))))
+ ('Downarrow~ rule-name (premise2 pr1 pr2) (conclusion judegement))
+ (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
+ (theorem (proof pr2 rule-for-pr2 rest-proof-pr2))
+ -->
+ (theorem proof-obj)]
+
+; ---------------------------------------------
+; construction of proof tree for the valid type judegement we found during search
+[(= judegement ('vdash~ (true) T C))
+ (well-form-type judegement)
+ -->
+ (proof judegement "T-True" ('mt~))]
+
+[(= judegement ('vdash~ (false) T C))
+ (well-form-type judegement)
+ -->
+ (proof judegement "T-False" ('mt~))]
+
+[(= judegement ('vdash~ (var x) T C))
+ (well-form-type judegement)
+ -->
+ (proof judegement "T-Var"
+    (sub-proof1 (proof ?('in~ C x T) "FACT" ('mt~))))]
+
+[(= judegement ('vdash~ ('lambda~ x T1 b) ('longrightarrow~ T1 T2) C))
+ (well-form-type judegement)
+ -->
+ (proof judegement "T-Abs"
+    (sub-proof1 ?(proof ('vdash~ b T2 (ctx x T1 C)) r proof-rest)))]
+
+[(= judegement ('vdash~ (app e1 e2) T C))
+ (well-form-type judegement)
+ -->
+ (proof judegement "T-App"
+    (sub-proof2 ?(proof ('vdash~ e1 ('longrightarrow~ T1 T) C) r-e1 pf-rst-e1)
+                ?(proof ('vdash~ e2 T1 C) r-e2 pf-rst-e2)))]
+
+; (found-proof {proof ('vdash~ (app ('lambda~ "x" (Bool) (var "x")) (true)) (Bool) ('mt~))})
+(check-proof
+    ?(proof ('vdash~ (app ('lambda~ "x" (Bool) (var "x")) (true)) (Bool) ('mt~))
+            r pf-rst))
+(verified-success
+    ?(theorem (proof ('vdash~ (app ('lambda~ "x" (Bool) (var "x")) (true)) (Bool) ('mt~))
+                     r pf-rst)))

@@ -17,6 +17,7 @@
                 {"ugly": "'mt~", "pretty": "Ø"},
                 {"ugly": "'in~", "pretty": "∈"},
                 {"ugly": "'pi~", "pretty": "π"},
+                {"ugly": "'Downarrow~", "pretty": "⇓"}
             ]
         }
     ]
