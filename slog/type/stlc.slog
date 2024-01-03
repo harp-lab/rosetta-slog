@@ -1,102 +1,85 @@
 
-; type context
+
 ('mt~)
 ('in~ ?(ctx x T res) x T)
 [('in~ res x1 T1) --> ('in~ ?(ctx x T res) x1 T1)]
 
-; before start, lets write AST of STLC term in slog
+(all-context ('mt~))
+(all-context ?(ctx x T res))
 
-; 1. syntax of STLC term
-; Simple types is a set of type contains atomic types and function types constructred
-; by arrow type constructor and other simple types
-; as TAPL book says, we start by using Bool as atomic typ
-; SimplyType = AtomicType | ('longrightarrow~ SimplyType SimplyType)
-; AtomicType = Bool
-; let's write examples term of Simply Type
-(ast-example-type-1
-    (Bool))
-(ast-example-type-3
-    ('longrightarrow~ (Bool) ('longrightarrow~ (Bool) (Bool))))
-; term of STLC:
-; variable: x
-(ast-example-term-variable
-    (var "x"))
-; abstraction: \x:T.x
-(ast-example-term-abstraction
-    ('lambda~ "x" (Bool) (var "x")))
-; application: x y
-(ast-example-term-application
-    (apply (var "x") (var "y")))
-; constant: true false
-(ast-example-term-constant-true
-    (true))
-(ast-example-term-constant-false
-    (false))
-; if-then-else: if x then y else z
-(ast-example-term-if-then-else
-    (if (var "x") (var "y") (var "z")))
+; first naive attempt at type checking
+; unit
+; (has-type {all-context} ?(true) (Bool))
+; (has-type {all-context} ?(false) (Bool))
+; [(has-type C ?(app e1 e2) T) <--
+;     (has-type C e1 ('longrightarrow~ T1 T))
+;     (has-type C e2 T1)]
+; [(has-type (ctx x T1 Cp) ?('lambda~ x T1 b) ('longrightarrow~ T1 T2)) <--
+;     (has-type Cp b T2)]
+; [(has-type C ?(var x) T) <--
+;     ('in~ C x T)]
 
-; 2. Typing rules of STLC
+(top (app ('lambda~ "x" (Bool) (var "x")) (true)))
+(pass ?(has-type C (app ('lambda~ "x" (Bool) (var "x")) (true)) T))
+; this proof search will fail, because just from bottom up, when system sees
+; (var "x") it has no idea what context "x" is in, so it can't find a type for
+; it.
 
-; Next, we introduce the use of intuitionistic logic to represent typing rules.
-; A type judgement is represented as a triple (t, T, 'Gamma~) using the relation ('vdash~ t T 'Gamma~).
-; means under context 'Gamma~, term t has type T
-; NOTE: unlike TAPL book, I put context at last argument of \vdash operator
-; The "check" relation is used to associate a type judgement with a valid proof, 
-; which is represented as a tree of inference rules.
-; Each proof node is represented as a fact in the slog file.
+; using co function transformation
+; https://szabta89.github.io/publications/inca-typechecking.pdf
+(can-have-type ?(true) (Bool))
+(can-have-type ?(false) (Bool))
+[(can-have-type ?(app e1 e2) T) <--
+    (can-have-type e1 ('longrightarrow~ T1 T))
+    (can-have-type e2 T1)]
 
-; T-Abs
-; 'Gamma~, x:T1 |- t2:T2
-; ---------------------
-; 'Gamma~ |- \x:T1.t2 : T1 -> T2
-[(pass !(check proof-t2 ('vdash~ t2 T2 (ctx x T1 'Gamma~))))
+[(can-have-type ?('lambda~ x T1 b) ('longrightarrow~ T1 T2)) <--
+    (can-have-type b T2)]
+
+[(can-have-type ?(var x) T) <--
+    ('pi~-typed (var x) C)
+    ('in~ C x T)]
+
+[('pi~-typed e1 C) <-- ('pi~-typed (app e1 e2) C)]
+[('pi~-typed e2 C) <-- ('pi~-typed (app e1 e2) C)]
+[('pi~-typed b (ctx x T1 C)) <-- ('pi~-typed ('lambda~ x T1 b) C)]
+[('pi~-typed e ('mt~)) <-- (top e)]
+
+[('pi~-typed e C)
+ (can-have-type e T)
  -->
- (pass ?(check (T-Abs proof-t2)
-               ('vdash~ ('lambda~ x T1 t2) ('longrightarrow~ T1 T2) 'Gamma~)))]
-; NOTE: use ! ? in slog to fire fact on-demand or lazily
+ (checked ('vdash~ e T C))]
 
-; T-Var
-; x:T in 'Gamma~
-; ----------------
-; 'Gamma~ |- x:T
-[('in~ 'Gamma~ x T)
+; assembly proof tree
+[(= judegement ('vdash~ (true) T C))
+ (checked judegement)
  -->
- (pass ?(check (T-Var)
-               ('vdash~ (var x) T 'Gamma~)))]
+ (proof judegement (T-True) )]
 
-; T-App
-; 'Gamma~ |- t1:T1 -> T2
-; 'Gamma~ |- t2:T1
-; -------------------
-; 'Gamma~ |- t1 t1 : T2
-[(pass !(check proof-t1 ('vdash~ t1 ('longrightarrow~ T1 T2) 'Gamma~)))
- (pass !(check proof-t2 ('vdash~ t2 T1 'Gamma~)))
+[(= judegement ('vdash~ (false) T C))
+ (checked judegement)
  -->
- (pass ?(check (T-App T1 proof-t1 proof-t2)
-               ('vdash~ (apply t1 t2) T2 'Gamma~)))]
+ (proof judegement (T-False))]
 
-; [(check (T-App T1 proof-t1 proof-t2) ('vdash~ (apply t1 t2) T2 'Gamma~))
-;  -->
-;  (check proof-t1 ('vdash~ t1 ('longrightarrow~ T1 T2) 'Gamma~))]
+[(= judegement ('vdash~ (var x) T C))
+ ('in~ C x T)
+ (checked judegement)
+ -->
+ (proof judegement (T-Var))]
 
-; T-True
-; -------------------
-; 'Gamma~ |- true:Bool
-(pass ?(check (T-True) ('vdash~ (true) (Bool) 'Gamma~)))
+[(debug ) <-- ('vdash~ ('lambda~ x T1 b) ('longrightarrow~ T1 T2) C)]
 
-; T-False
-; -------------------
-; 'Gamma~ |- false:Bool
-(pass ?(check (T-False) ('vdash~ (false) (Bool) 'Gamma~)))
+[(= judegement ('vdash~ ('lambda~ x T1 b) ('longrightarrow~ T1 T2) C))
+ (checked judegement)
+ (proof ('vdash~ b T2 (ctx x T1 C)) pf-b)
+ -->
+ (proof judegement (T-Abs pf-b))]
 
-; okay! let's check term on TAPL
-; (\x:Bool.x) true under empty context 
-(judegement-1 ('vdash~ (apply ('lambda~ "x" (Bool) (var "x")) (true)) (Bool) ('mt~)))
+[(= judegement ('vdash~ (app e1 e2) T C))
+ (checked judegement)
+ (proof ('vdash~ e1 ('longrightarrow~ T1 T) C) pf-e1)
+ (proof ('vdash~ e2 T1 C) pf-e2)
+ -->
+ (proof judegement (T-App pf-e1 pf-e2))]
 
-; here is the proof
-(proof "proof-1"
-    (T-App (Bool) (T-Abs (T-Var)) (T-True)))
-
-(check {proof "proof-1"} {judegement-1})
-[(correct "should-be-correct") <-- (pass (check {proof "proof-1"} {judegement-1}))]
+(found-proof {proof ('vdash~ (app ('lambda~ "x" (Bool) (var "x")) (true)) (Bool) ('mt~))})
