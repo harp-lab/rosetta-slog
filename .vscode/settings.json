@@ -15,7 +15,8 @@
                 {"ugly": "'Gamma~", "pretty": "Γ"},
                 {"ugly": "'vdash~", "pretty": "⊢"},
                 {"ugly": "'mt~", "pretty": "Ø"},
-                {"ugly": "'in~", "pretty": "∈"}
+                {"ugly": "'in~", "pretty": "∈"},
+                {"ugly": "'pi~", "pretty": "π"},
             ]
         }
     ]
