@@ -1,0 +1,8 @@
+
+(welcome-msg 0 "hello-world")
+(welcome-msg 1 "hello-moon")
+(welcome-msg 2 "hello-earth")
+(welcome-msg 3 "hello-sun")
+
+[(print-out msg) <-- (print-welcome msg-id) (welcome-msg msg-id msg)]
+(print-welcome 1)

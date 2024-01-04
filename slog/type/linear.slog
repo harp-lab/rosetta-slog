@@ -1,0 +1,70 @@
+
+; How does the AST for linearly typed lambda calculus look like?
+
+; based on ATAPL book, chapter 1
+; syntax:
+; q ::= lin | un
+; b ::= true | false
+(true)
+(false)
+
+; term
+; x
+(var "x")
+; q b
+(lin (true))
+(un (false))
+; if t then t else t
+(if (var "x") (var "y") (lin (true)))
+; pair
+(lin (pair (var "x") (un (false))))
+; split t as x,y in t
+(split (lin (pair (var "x") (un (false))))
+       (var "x") (var "y")
+       (var "x"))
+; abstraction
+(lin ('lambda~ "x" (Bool) (var "x")))
+
+; pretypes & types
+(Bool)
+(Product (Bool) (Bool))
+; ('otimes~ (Bool) (Bool))
+(lin (Product (Bool) (Bool)))
+; ('rightarrow~ (Bool) (Bool))
+(lin ('rightarrow~ (Bool) (Bool)))
+
+; contexts
+('mt~)
+('in~ ?(ctx x T res) x T)
+[('in~ res x1 T1) --> ('in~ ?(ctx x T res) x1 T1)]
+
+[(pre-'in~ (ctx x T res) prev-x prev-T) <-- (ctx prev-x prev-T (ctx x T res))]
+[(pre-'in~ (ctx x T res) prev-x prev-T) <--
+    (pre-'in~ (ctx _ _ (ctx x T res)) prev-x prev-T)]
+
+; construct reverse context
+
+(lin-T-'sqsubseteq~ ?(lin type))
+(lin-T-'sqsubseteq~ ?(un type))
+(un-tye-'sqsubseteq~ ?(un type))
+
+(lin-ctx-'sqsubseteq~ ('mt~))
+(un-ctx-'sqsubseteq~ ('mt~))
+[(lin-ctx-'sqsubseteq~ ?(ctx x T ctx-rest)) <--
+    (lin-ctx-'sqsubseteq~ ctx-rest)
+    (lin-T-'sqsubseteq~ T)]
+[(un-ctx-'sqsubseteq~ ?(ctx x T ctx-rest)) <--
+    (un-ctx-'sqsubseteq~ ctx-rest)
+    (un-T-'sqsubseteq~ T)]
+
+; table all these function call as fact proof
+(proof "FACT" ?(lin-T-'sqsubseteq~ T))
+(proof "FACT" ?(un-T-'sqsubseteq~ T))
+(proof "FACT" ?(lin-ctx-'sqsubseteq~ ctx))
+(proof "FACT" ?(un-ctx-'sqsubseteq~ ctx))
+
+; typing rules
+('Downarrow~ "LinT-Var"
+    (premise (lin-ctx-'sqsubseteq~ 'Gamma~1)
+             (lin-ctx-'sqsubseteq~ 'Gamma~2))
+    (conclusion ()))

@@ -1,0 +1,10 @@
+
+(input-list (list 1 (list 2 (list 3 (list 4 (list 5 (list 6 (list 7 (list 8 (list 9 (list 10 (nil))))))))))))
+
+; reverse a list
+; [(rev-list (list x rst) y) <-- (list y (list x rst))]
+; [(rev-list (list x rst) z)
+;     <--
+;     (rev-list (list y (list x rst)) z)]
+
+[(rev-helper (list x rst) (list x (nil))) <-- (list x rst)]

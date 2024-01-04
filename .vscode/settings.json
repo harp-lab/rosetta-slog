@@ -17,7 +17,11 @@
                 {"ugly": "'mt~", "pretty": "Ø"},
                 {"ugly": "'in~", "pretty": "∈"},
                 {"ugly": "'pi~", "pretty": "π"},
-                {"ugly": "'Downarrow~", "pretty": "⇓"}
+                {"ugly": "'Downarrow~", "pretty": "⇓"},
+                {"ugly": "'multimap~", "pretty": "⊸"},
+                {"ugly": "'otimes~", "pretty": "⊗"},
+                {"ugly": "'circ~", "pretty": "∘"},
+                {"ugly": "'sqsubseteq~", "pretty": "⊑"}
             ]
         }
     ]

@@ -7,8 +7,22 @@
 (length ?(do-length (nil)) 0)
 [(length ?(do-length (list hd rst)) {+ len-rst 1}) <-- (length !(do-length rst) len-rst)]
 
+;  member operation
 (member ?(do-member x (nil)) (false))
 (member ?(do-member x (list x rst)) (true))
 [(member ?(do-member x (list hd rst)) (true)) <-- (=/= hd x) (member !(do-member x rst) (true))]
 [(member ?(do-member x (list hd rst)) (false)) <-- (=/= hd x) (member !(do-member x rst) (false))]
 [(do-member 2 l) <-- (input-list l)]
+
+;  append operation
+(append ?(do-append (nil) l) (list l (nil)))
+[(append !(do-append tail l) tail-appended)
+    -->
+    (append ?(do-append (list hd tail) l) (list hd tail-appended))]
+
+; test
+(do-append {input-list} 4)
+
+
+;  reverse operation
+
