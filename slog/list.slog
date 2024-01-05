@@ -6,23 +6,50 @@
 
 (length ?(do-length (nil)) 0)
 [(length ?(do-length (list hd rst)) {+ len-rst 1}) <-- (length !(do-length rst) len-rst)]
+[(print-length-res res)
+    <-- (length !(do-length {input-list}) res)]
+
 
 ;  member operation
 (member ?(do-member x (nil)) (false))
 (member ?(do-member x (list x rst)) (true))
 [(member ?(do-member x (list hd rst)) (true)) <-- (=/= hd x) (member !(do-member x rst) (true))]
 [(member ?(do-member x (list hd rst)) (false)) <-- (=/= hd x) (member !(do-member x rst) (false))]
-[(do-member 2 l) <-- (input-list l)]
+[(print-member-res res) <--
+	(memeber !(do-member 2 {input-list}) res)]
 
 ;  append operation
-(append ?(do-append (nil) l) (list l (nil)))
-[(append !(do-append tail l) tail-appended)
-    -->
-    (append ?(do-append (list hd tail) l) (list hd tail-appended))]
+(append ?(do-append (nil) x) (list x (nil)))
+[(append ?(do-append (list hd tail) x) (list hd tail-appended)) <--
+ (append !(do-append tail x) tail-appended)]
 
 ; test
-(do-append {input-list} 4)
-
+; (do-append {input-list} 4)
+[(print-test-res list) <-- (append !(do-append {input-list} 4) list)]
 
 ;  reverse operation
+(reverse (do-reverse (nil)) (nil))
+[(reverse ?(do-reverse (list hd tail)) {append !(do-append r hd)}) <--
+    (reverse !(do-reverse tail) r)]
+[(print-reverse-res list) <-- (reverse !(do-reverse {input-list}) list)]
+
+; head-list, a list which is not sub-list of any other list
+[(head-list l) <-- (= l (list x rst)) (~ list _ l)]
+(print-head-list-res {head-list})
+
+
+; split-until operation
+; split the head of a relation util some rst tail
+; (1 2 3 4) - (3 4) = (1 2)
+(split-until ?(do-split-until l l) (nil))
+[(split-until  ?(do-split-until (list hd rst) l) (list hd rst-res)) <--
+    (split-until !(do-split-until rst l) rst-res)]
+[(print-split-until-res res) <-- (split-until !(do-split-until {input-list} (list 3 (nil))) res)]
+
+; split operation
+; split at tail
+; (split-at ?(do-split-at (list x (nil)) x) (nil) (nil))
+; split at head
+; [(split-at ?(do-split-at (list x rst) x) (nil) rst) <-- (head-list (list x rst))]
+; split at middle
 

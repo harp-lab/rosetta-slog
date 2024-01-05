@@ -89,10 +89,9 @@
 
 ; assuming context function call is correct
 ; all "functional call" result need to be tabled because we are in datalog
-(fact ('mt~))
-(fact ?('in~ (ctx x T res) x T))
-
-[(fact f) --> (theorem (proof f "FACT" ('mt~)))]
+(axiom ('mt~))
+(axiom ?('in~ (ctx x T res) x T))
+[(axiom f) --> (theorem (proof f "FACT" ('mt~)))]
 
 ; a natural deudction rule can be applied, iff there are proofs
 ; for all its premises

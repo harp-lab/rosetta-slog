@@ -1,0 +1,267 @@
+; extension for STLC (PCF)
+
+; context related
+('mt~)
+('in~ ?(ctx x T res) x T)
+[('in~ res x1 T1) --> ('in~ ?(ctx x T res) x1 T1)]
+
+; STLC rules
+('Downarrow~ "T-True"
+    ('mt~)
+    ; ------------
+    (conclusion ?('vdash~ (true) (Bool) ('mt~))))
+
+('Downarrow~ "T-False"
+    ('mt~)
+    ; ------------
+    (conclusion ?('vdash~ (false) (Bool) ('mt~))))
+
+('Downarrow~ "T-Var"
+    (premise1 ?('in~ C x T))
+    ; ------------
+    (conclusion ?('vdash~ (var x) T C)))
+
+('Downarrow~ "T-Abs"
+    (premise1 ?('vdash~ b T2 (ctx x T1 C)))
+    ; ------------
+    (conclusion ?('vdash~ ('lambda~ x T1 b) ('longrightarrow~ T1 T2) C)))
+
+('Downarrow~ "T-App"
+    (premise2 ?('vdash~ e1 ('longrightarrow~ T1 T) C)
+              ?('vdash~ e2 T1 C))
+    ; ------------
+    (conclusion ?('vdash~ (app e1 e2) T C)))
+
+; type check
+(can-have-type ?(true) (Bool))
+(can-have-type ?(false) (Bool))
+[(can-have-type ?(app e1 e2) T) <--
+    (can-have-type e1 ('longrightarrow~ T1 T))
+    (can-have-type e2 T1)]
+
+[(can-have-type ?('lambda~ x T1 b) ('longrightarrow~ T1 T2)) <--
+    (can-have-type b T2)]
+
+[(can-have-type ?(var x) T) <--
+    ('pi~-typed (var x) C)
+    ('in~ C x T)]
+
+[('pi~-typed e1 C) <-- ('pi~-typed (app e1 e2) C)]
+[('pi~-typed e2 C) <-- ('pi~-typed (app e1 e2) C)]
+[('pi~-typed b (ctx x T1 C)) <-- ('pi~-typed ('lambda~ x T1 b) C)]
+[('pi~-typed e ('mt~)) <-- (top e)]
+
+[('pi~-typed e C)
+ (can-have-type e T)
+ -->
+ (well-form-type ('vdash~ e T C))]
+
+
+; extensions
+; base type
+; example define A as base type
+(Base "A")
+; also need define base value for A
+('Downarrow~ "T-Base"
+    ('mt~)
+    ; ------------
+    (conclusion ?('vdash~ (base b B) (Base B) ('mt~))))
+
+; natural number
+('Downarrow~ "T-Zero"
+    ('mt~)
+    ; ------------
+    (conclusion ?('vdash~ (zero) ('nat~) ('mt~))))
+('Downarrow~ "T-Succ"
+    (premise1 ?('vdash~ e (Nat) C))
+    ; ------------
+    (conclusion ?('vdash~ (succ e) ('nat~) C)))
+; type checking
+(can-have-type ?(zero) ('nat~))
+[(can-have-type ?(succ e) ('nat~)) <--
+    (can-have-type e ('nat~))]
+[('pi~-typed (succ e) C) --> ('pi~-typed e C)]
+
+; case-z-suc
+; if e is zero, then e1 else e2
+('Downarrow~ "T-Case-Z-Suc"
+    (premise3 ?('vdash~ e ('nat~) C)
+              ?('vdash~ e1 T C)
+              ?('vdash~ e2 T C))
+    ; ------------
+    (conclusion ?('vdash~ (case-z-suc e e1 e2) T C)))
+; type checking
+[(can-have-type ?(case-z-suc e e1 e2) T) <--
+    (can-have-type e ('nat~))
+    (can-have-type e1 T)
+    (can-have-type e2 T)]
+[('pi~-typed (case-z-suc e e1 e2) C)
+    -->
+    ('pi~-typed e C)
+    ('pi~-typed e1 C)
+    ('pi~-typed e2 C)]
+
+; unit
+('Downarrow~ "T-Unit"
+    ('mt~)
+    ; ------------
+    (conclusion ?('vdash~ (unit) (Unit) ('mt~))))
+; sequence
+('Downarrow~ "T-Seq"
+    (premise2 ?('vdash~ e1 (Unit) C) ?('vdash~ e2 T C))
+    ; ------------
+    (conclusion ?('vdash~ (seq e1 e2) T C)))
+
+; type checking rule for them
+(can-have-type ?(base b B) (Base B))
+(can-have-type ?(unit) (Unit))
+[(can-have-type ?(seq e1 e2) T) <--
+    (can-have-type e1 (Unit))
+    (can-have-type e2 T)]
+; these rules won't create new context
+
+; ascription
+('Downarrow~ "T-Ascribe"
+    (premise1 ?('vdash~ e T C))
+    ; ------------
+    (conclusion ?('vdash~ (as e T) T C)))
+; type check
+[(can-have-type ?(as e T) T) <--
+    (can-have-type e T)]
+
+; let
+('Downarrow~ "T-Let"
+    (premise2 ?('vdash~ e1 T1 C) ?('vdash~ e2 T2 (ctx x T1 C)))
+    ; ------------
+    (conclusion ?('vdash~ (let x e1 e2) T2 C)))
+; type check
+[(can-have-type ?(let x e1 e2) T2) <--
+    (can-have-type e1 T1)
+    (can-have-type e2 T2)]
+; context
+[('pi~-typed (let x e1 e2) C)
+ (can-have-type e1 T1)
+     --> ('pi~-typed e2 (ctx x T1 C))]
+[('pi~-typed e1 C) <-- ('pi~-typed (let x e1 e2) C)]
+
+; let "x" = true in x
+; (top
+;     (let "x" (true) (var "x")))
+
+; pair
+('Downarrow~ "T-Pair"
+    (premise2 ?('vdash~ e1 T1 C) ?('vdash~ e2 T2 C))
+    ; ------------
+    (conclusion ?('vdash~ (pair e1 e2) ('times~ T1 T2) C)))
+
+; T-proj1
+('Downarrow~ "T-Proj1"
+    (premise1 ?('vdash~ e ('times~ T1 T2) C))
+    ; ------------
+    (conclusion ?('vdash~ (proj1 e) T1 C)))
+; T-proj2
+('Downarrow~ "T-Proj2"
+    (premise1 ?('vdash~ e ('times~ T1 T2) C))
+    ; ------------
+    (conclusion ?('vdash~ (proj2 e) T2 C)))
+
+; type check
+[(can-have-type ?(pair e1 e2) ('times~ T1 T2)) <--
+    (can-have-type e1 T1)
+    (can-have-type e2 T2)]
+[(can-have-type ?(proj1 e) T1) <--
+    (can-have-type e ('times~ T1 T2))]
+[(can-have-type ?(proj2 e) T2) <--
+    (can-have-type e ('times~ T1 T2))]
+
+; tuples and records
+; tuples
+; how do these in slog?
+; desugar to pair?
+; maybe just need different rules for different length of tuples?
+
+; sum type
+('Downarrow~ "T-Inl"
+    (premise1 ?('vdash~ e T1 C))
+    ; ------------
+    (conclusion ?('vdash~ (inl e) ('oplus~ T1 T2) C)))
+('Downarrow~ "T-Inr"
+    (premise1 ?('vdash~ e T2 C))
+    ; ------------
+    (conclusion ?('vdash~ (inr e) ('oplus~ T1 T2) C)))
+('Downarrow~ "T-Case"
+    (premise3 ?('vdash~ e ('oplus~ T1 T2) C)
+              ?('vdash~ e1 T C)
+              ?('vdash~ e2 T C))
+    ; ------------
+    (conclusion ?('vdash~ (case-lr e e1 e2) T C)))
+; type check
+[(can-have-type ?(inl e) ?('oplus~ T1 T2)) <--
+    (can-have-type e T1)]
+[(can-have-type ?(inr e) ?('oplus~ T1 T2)) <--
+    (can-have-type e T2)]
+[(can-have-type ?(case-lr e x1 e1 x2 e2) T) <--
+    (can-have-type e ('oplus~ T1 T2))
+    (can-have-type e1 T)
+    (can-have-type e2 T)]
+[('pi~-typed (case-lr e x1 e1 x2 e2) C)
+ (can-have-type e ('oplus~ T1 T2))
+    -->
+    ('pi~-typed e1 (ctx x1 T1 C))
+    ('pi~-typed e2 (ctx x2 T2 C))]
+
+; sum type with unique typing
+('Downarrow~ "T-Inl-Unique"
+    (premise1 ?('vdash~ e T1 C))
+    ; ------------
+    (conclusion ?('vdash~ (inl-as e ('oplus~ T1 T2)) ('oplus~ T1 T2) C)))
+('Downarrow~ "T-Inr-Unique"
+    (premise1 ?('vdash~ e T2 C))
+    ; ------------
+    (conclusion ?('vdash~ (inr-as e ('oplus~ T1 T2)) ('oplus~ T1 T2) C)))
+; type check
+[(can-have-type ?(inl-as e ('oplus~ T1 T2)) ('oplus~ T1 T2)) <--
+    (can-have-type e T1)]
+[(can-have-type ?(inr-as e ('oplus~ T1 T2)) ('oplus~ T1 T2)) <--
+    (can-have-type e T2)]
+
+; variant can desugar to sum type
+
+; recursion
+('Downarrow~ "T-Fix"
+    (premise1 ?('vdash~ e ('longrightarrow~ T1 T1) C))
+    ; ------------
+    (conclusion ?('vdash~ (fix e) T1 C)))
+; type check
+[(can-have-type ?(fix e) T1) <--
+    (can-have-type e ('longrightarrow~ T1 T1))]
+[('pi~-typed (fix e) C)
+    -->
+    ('pi~-typed e C)]
+
+
+; test sum function
+; using fix and case-z-suc
+; plus : Term
+; plus = μ "+" ⇒ ƛ "m" ⇒ ƛ "n" ⇒
+;          case ` "m"
+;            [zero⇒ ` "n"
+;            |suc "m" ⇒ `suc (` "+" · ` "m" · ` "n") ]
+(top
+    (let "plus"
+        (fix
+            ('lambda~ "plus" ('longrightarrow~ ('nat~) ('longrightarrow~ ('nat~) ('nat~)))
+                ('lambda~ "m" ('nat~)
+                    ('lambda~ "n" ('nat~)
+                        (case-z-suc (var "m")
+                            (var "n")
+                            (succ (app (app (var "plus") (var "m")) (var "n"))))))))
+        (app (app (var "plus") (succ (succ (zero)))) (succ (succ (succ (zero)))))))
+
+; debug, print the term have context C but not have type T
+[(stuck e C) <--
+    ('pi~-typed e C)
+    (~ can-have-type e _)]
+
+[(type-of-top T) <-- ('vdash~ {top} T _)]
+; #1      (type-of-top ('nat~ ))  ; => true

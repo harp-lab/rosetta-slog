@@ -21,7 +21,11 @@
                 {"ugly": "'multimap~", "pretty": "⊸"},
                 {"ugly": "'otimes~", "pretty": "⊗"},
                 {"ugly": "'circ~", "pretty": "∘"},
-                {"ugly": "'sqsubseteq~", "pretty": "⊑"}
+                {"ugly": "'sqsubseteq~", "pretty": "⊑"},
+                {"ugly": "'nat~", "pretty": "ℕ"},
+                {"ugly": "'mu~", "pretty": "μ"},
+                {"ugly": "'times~", "pretty": "×"},
+                {"ugly": "'oplus~", "pretty": "⊕"}
             ]
         }
     ]
