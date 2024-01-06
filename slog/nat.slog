@@ -15,10 +15,7 @@
 (print-plus-2-3 {plus !(do-plus (suc (suc (zero))) (suc (suc (suc (zero)))))})
 
 ; 'equiv~ is reflexive
-('Downarrow~ "equiv-refl"
-    ('mt~)
-    (conclusion ?('equiv~ a a)))
-
+('Downarrow~ "equiv-refl" ('mt~) (conclusion ?('equiv~ a a)))
 ; for each ADT we need define a equiv rule for it
 ('Downarrow~ "suc-equiv"
     (premise1 ?('equiv~ a b))
@@ -27,62 +24,149 @@
 
 ; 'equiv~ is transitive
 ('Downarrow~ "equiv-trans"
-    (premise2 ?('equiv~ a b)
-              ?('equiv~ b c))
+    (premise2 ?('equiv~ a b) ?('equiv~ b c))
     (conclusion ?('equiv~ a c)))
-
 ; write the inference rules for the plus relation
-('Downarrow~ "plus-0"
-    ('mt~)
-    (conclusion ?('equiv~ (do-plus (zero) n)
-                    n)))
-('Downarrow~ "plus-ind"
-    ('mt~)
-    (conclusion ?('equiv~ (do-plus (suc m) n)
-                    (suc (do-plus m n)))))
-
+('Downarrow~ "plus-0" ('mt~)
+    (conclusion ?('equiv~ (do-plus (zero) n) n)))
+('Downarrow~ "plus-ind" ('mt~)
+    (conclusion ?('equiv~ (do-plus (suc m) n) (suc (do-plus m n)))))
 ; write the proof tree for (+ 2 3) = 5
 ; (do-plus (suc (suc (zero))) (suc (suc (suc (zero)))))
 (goal-2-3-5
     ('equiv~ (do-plus (suc (suc (zero)))
                 (suc (suc (suc (zero)))))
        (suc (suc (suc (suc (suc (zero))))))))
-(proof-for-2-3-5 (proof {goal-2-3-5} "equiv-trans" (sub-proof2 {proof-1-a} {proof-1-b})))
-(subgoal-1-a
-    ('equiv~ (do-plus (suc (suc (zero)))
-                (suc (suc (suc (zero)))))
-       (suc (do-plus (suc (zero))
-                     (suc (suc (suc (zero))))))))
-(proof-1-a (proof {subgoal-1-a} "plus-ind" ('mt~)))
-(subgoal-1-b
-    ('equiv~ (suc (do-plus (suc (zero))
-                    (suc (suc (suc (zero))))))
-       (suc (suc (suc (suc (suc (zero))))))))
-(proof-1-b (proof {subgoal-1-b} "suc-equiv" (sub-proof1 {proof-2-a})))
-(subgoal-2-a
-    ('equiv~ (do-plus (suc (zero))
-                (suc (suc (suc (zero)))))
-       (suc (suc (suc (suc (zero)))))))
-(proof-2-a (proof {subgoal-2-a} "equiv-trans" (sub-proof2 {proof-3-a} {proof-3-b})))
-(sub-goal-3-a
-    ('equiv~ (do-plus (suc (zero))
-                (suc (suc (suc (zero)))))
-       (suc (do-plus (zero)
-                     (suc (suc (suc (zero))))))))
-(proof-3-a (proof {sub-goal-3-a} "plus-ind" ('mt~)))
-(subgoal-3-b
-    ('equiv~ (suc (do-plus (zero)
-                     (suc (suc (suc (zero))))))
-       (suc (suc (suc (suc (zero)))))))
-(proof-3-b (proof {subgoal-3-b} "suc-equiv" (sub-proof1 {proof-4-a})))
-(subgoal-4-a
-    ('equiv~ (do-plus (zero)
-                (suc (suc (suc (zero)))))
-       (suc (suc (suc (zero))))))
-(proof-4-a (proof {subgoal-4-a} "plus-0" ('mt~)))
-('qed~ {proof-for-2-3-5})
 
-[(print-plus-2-3-5-check-res "pass") <-- (theorem {proof-for-2-3-5})]
+; ---------------------------------------------
+; directly write the proof tree
+; ---------------------------------------------
+; (proof-for-2-3-5 (proof {goal-2-3-5} "equiv-trans" (sub-proof2 {proof-1-a} {proof-1-b})))
+; (proof-1-a (proof {subgoal-1-a} "plus-ind" ('mt~)))
+; (proof-1-b (proof {subgoal-1-b} "suc-equiv" (sub-proof1 {proof-2-a})))
+; (proof-2-a (proof {subgoal-2-a} "equiv-trans" (sub-proof2 {proof-3-a} {proof-3-b})))
+; (proof-3-a (proof {sub-goal-3-a} "plus-ind" ('mt~)))
+; (proof-3-b (proof {subgoal-3-b} "suc-equiv" (sub-proof1 {proof-4-a})))
+; (proof-4-a (proof {subgoal-4-a} "plus-0" ('mt~)))
+; ('qed~ {proof-for-2-3-5})
+
+; (subgoal-1-a
+;     ('equiv~ (do-plus (suc (suc (zero)))
+;                 (suc (suc (suc (zero)))))
+;        (suc (do-plus (suc (zero))
+;                      (suc (suc (suc (zero))))))))
+; (subgoal-1-b
+;     ('equiv~ (suc (do-plus (suc (zero))
+;                     (suc (suc (suc (zero))))))
+;        (suc (suc (suc (suc (suc (zero))))))))
+; (subgoal-2-a
+;     ('equiv~ (do-plus (suc (zero))
+;                 (suc (suc (suc (zero)))))
+;        (suc (suc (suc (suc (zero)))))))
+; (sub-goal-3-a
+;     ('equiv~ (do-plus (suc (zero))
+;                 (suc (suc (suc (zero)))))
+;        (suc (do-plus (zero)
+;                      (suc (suc (suc (zero))))))))
+; (subgoal-3-b
+;     ('equiv~ (suc (do-plus (zero)
+;                      (suc (suc (suc (zero))))))
+;        (suc (suc (suc (suc (zero)))))))
+; (subgoal-4-a
+;     ('equiv~ (do-plus (zero)
+;                 (suc (suc (suc (zero)))))
+;        (suc (suc (suc (zero))))))
+
+; [(print-plus-2-3-5-check-res "pass") <-- (theorem {proof-for-2-3-5})]
+
+; --------------------------------------------
+; what will the "apply" tactic looks like in slog?
+; `apply` tactic maybe is:
+; goal -> rule -> sub goals
+; when a `apply` happen, at the same time, a corresponed proof should
+; also generated
+
+; a proof state (proof-state (tactic t g args ...) sgs)
+; shows when some tactic is applied to goal g, the current sub goal will become sgs
+
+; relation (solve-state s pr)
+; means a proof state "s" can be solved by proof "pr", there is proof attached to it's sub goals
+
+[('Downarrow~ rule-name
+    ('mt~)
+    (conclusion goal))
+ -->
+    (proof-state
+        ?(use-tactic "apply" goal rule-name)
+        ('mt~))]
+[('Downarrow~ rule-name
+    (premise1 pr1)
+    (conclusion goal))
+ -->
+    (proof-state
+        ?(use-tactic "apply" goal rule-name)
+        (sub-goal1 pr1))]
+[('Downarrow~ rule-name
+    (premise2 pr1 pr2)
+    (conclusion goal))
+ -->
+    (proof-state
+        ?(use-tactic "apply" goal rule-name)
+        (sub-goal2 pr1 pr2))]
+
+(solve-state
+    ?(proof-state (use-tactic "apply" goal rule-name) ('mt~))
+    (proof goal rule-name ('mt~)))
+(solve-state
+    ?(proof-state (use-tactic "apply" goal rule-name) (sub-goal1 pr1))
+    (proof goal rule-name
+        (sub-proof1 ?(proof pr1 pr1-rule pr1-subproofs))))
+(solve-state
+    ?(proof-state (use-tactic "apply" goal rule-name) (sub-goal2 pr1 pr2))
+    (proof goal rule-name
+        (sub-proof2 ?(proof pr1 pr1-rule pr1-subproofs)
+                    ?(proof pr2 pr2-rule pr2-subproofs))))
+
+; error checking
+(valid-tactic "apply")
+[(invalid-use-tactic t) <-- (use-tactic t _ _) (~ valid-tactic t)]
+[(unsolved-state sid) <-- (= sid (proof-state _ _)) (~ solve-state sid _)]
+
+; ---------------------------------------------
+; goal oriented proof search
+; ---------------------------------------------
+(init-goal {goal-2-3-5})
+; proof search for goal-2-3-5
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[(do-trans ('equiv~ a c) b) --> ('equiv~ a b) ('equiv~ b c)]
+(do-trans {goal-2-3-5}
+    (suc (do-plus (suc (zero))
+                  (suc (suc (suc (zero)))))))
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+(p-step 1 (use-tactic "apply" {init-goal} "equiv-trans"))
+[(goal-dep 1 g1) (goal-dep 2 g2) <--
+    (proof-state {p-step 1} (sub-goal2 g1 g2))]
+(p-step 2 (use-tactic "apply" {goal-dep 1} "plus-ind"))
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[('equiv~ (suc a) (suc b)) --> ('equiv~ a b)]
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+(p-step 3 (use-tactic "apply" {goal-dep 2} "suc-equiv"))
+[(goal-dep 3 g3) <--
+    (proof-state {p-step 3} (sub-goal1 g3))]
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+(do-trans {goal-dep 3}
+    (suc (do-plus (zero)
+                  (suc (suc (suc (zero)))))))
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+(p-step 4 (use-tactic "apply" {goal-dep 3} "equiv-trans"))
+[(goal-dep 4 g4) (goal-dep 5 g5) <--
+    (proof-state {p-step 4} (sub-goal2 g4 g5))]
+(p-step 5 (use-tactic "apply" {goal-dep 4} "plus-ind"))
+(p-step 6 (use-tactic "apply" {goal-dep 5} "suc-equiv"))
+[(goal-dep 6 g6) <--
+    (proof-state {p-step 6} (sub-goal1 g6))]
+(p-step 7 (use-tactic "apply" {goal-dep 6} "plus-0"))
+('qed~ ?(proof {init-goal} _ _))
 
 ; ---------------------------------------------
 ; PREDEFINED RULES
