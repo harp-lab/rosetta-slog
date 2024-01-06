@@ -43,15 +43,15 @@
     (can-have-type b T2)]
 
 [(can-have-type ?(var x) T) <--
-    ('pi~-typed (var x) C)
+    (term-in-context (var x) C)
     ('in~ C x T)]
 
-[('pi~-typed e1 C) <-- ('pi~-typed (app e1 e2) C)]
-[('pi~-typed e2 C) <-- ('pi~-typed (app e1 e2) C)]
-[('pi~-typed b (ctx x T1 C)) <-- ('pi~-typed ('lambda~ x T1 b) C)]
-[('pi~-typed e ('mt~)) <-- (top e)]
+[(term-in-context e1 C) <-- (term-in-context (app e1 e2) C)]
+[(term-in-context e2 C) <-- (term-in-context (app e1 e2) C)]
+[(term-in-context b (ctx x T1 C)) <-- (term-in-context ('lambda~ x T1 b) C)]
+[(term-in-context e ('mt~)) <-- (top e)]
 
-[('pi~-typed e C)
+[(term-in-context e C)
  (can-have-type e T)
  -->
  (well-form-type ('vdash~ e T C))]
@@ -80,7 +80,7 @@
 (can-have-type ?(zero) ('nat~))
 [(can-have-type ?(succ e) ('nat~)) <--
     (can-have-type e ('nat~))]
-[('pi~-typed (succ e) C) --> ('pi~-typed e C)]
+[(term-in-context (succ e) C) --> (term-in-context e C)]
 
 ; case-z-suc
 ; if e is zero, then e1 else e2
@@ -95,11 +95,11 @@
     (can-have-type e ('nat~))
     (can-have-type e1 T)
     (can-have-type e2 T)]
-[('pi~-typed (case-z-suc e e1 e2) C)
+[(term-in-context (case-z-suc e e1 e2) C)
     -->
-    ('pi~-typed e C)
-    ('pi~-typed e1 C)
-    ('pi~-typed e2 C)]
+    (term-in-context e C)
+    (term-in-context e1 C)
+    (term-in-context e2 C)]
 
 ; unit
 ('Downarrow~ "T-Unit"
@@ -139,10 +139,10 @@
     (can-have-type e1 T1)
     (can-have-type e2 T2)]
 ; context
-[('pi~-typed (let x e1 e2) C)
+[(term-in-context (let x e1 e2) C)
  (can-have-type e1 T1)
-     --> ('pi~-typed e2 (ctx x T1 C))]
-[('pi~-typed e1 C) <-- ('pi~-typed (let x e1 e2) C)]
+     --> (term-in-context e2 (ctx x T1 C))]
+[(term-in-context e1 C) <-- (term-in-context (let x e1 e2) C)]
 
 ; let "x" = true in x
 ; (top
@@ -204,11 +204,11 @@
     (can-have-type e ('oplus~ T1 T2))
     (can-have-type e1 T)
     (can-have-type e2 T)]
-[('pi~-typed (case-lr e x1 e1 x2 e2) C)
+[(term-in-context (case-lr e x1 e1 x2 e2) C)
  (can-have-type e ('oplus~ T1 T2))
     -->
-    ('pi~-typed e1 (ctx x1 T1 C))
-    ('pi~-typed e2 (ctx x2 T2 C))]
+    (term-in-context e1 (ctx x1 T1 C))
+    (term-in-context e2 (ctx x2 T2 C))]
 
 ; sum type with unique typing
 ('Downarrow~ "T-Inl-Unique"
@@ -235,9 +235,9 @@
 ; type check
 [(can-have-type ?(fix e) T1) <--
     (can-have-type e ('longrightarrow~ T1 T1))]
-[('pi~-typed (fix e) C)
+[(term-in-context (fix e) C)
     -->
-    ('pi~-typed e C)]
+    (term-in-context e C)]
 
 
 ; test sum function
@@ -260,7 +260,7 @@
 
 ; debug, print the term have context C but not have type T
 [(stuck e C) <--
-    ('pi~-typed e C)
+    (term-in-context e C)
     (~ can-have-type e _)]
 
 [(type-of-top T) <-- ('vdash~ {top} T _)]

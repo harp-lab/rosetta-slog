@@ -34,15 +34,15 @@
     (can-have-type b T2)]
 
 [(can-have-type ?(var x) T) <--
-    ('pi~-typed (var x) C)
+    (term-in-context (var x) C)
     ('in~ C x T)]
 
-[('pi~-typed e1 C) <-- ('pi~-typed (app e1 e2) C)]
-[('pi~-typed e2 C) <-- ('pi~-typed (app e1 e2) C)]
-[('pi~-typed b (ctx x T1 C)) <-- ('pi~-typed ('lambda~ x T1 b) C)]
-[('pi~-typed e ('mt~)) <-- (top e)]
+[(term-in-context e1 C) <-- (term-in-context (app e1 e2) C)]
+[(term-in-context e2 C) <-- (term-in-context (app e1 e2) C)]
+[(term-in-context b (ctx x T1 C)) <-- (term-in-context ('lambda~ x T1 b) C)]
+[(term-in-context e ('mt~)) <-- (top e)]
 
-[('pi~-typed e C)
+[(term-in-context e C)
  (can-have-type e T)
  -->
  (well-form-type ('vdash~ e T C))]

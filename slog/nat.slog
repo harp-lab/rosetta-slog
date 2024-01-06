@@ -1,0 +1,136 @@
+
+; define plus relation
+
+; _+_ : ℕ → ℕ → ℕ
+; zero + n = n
+; (suc m) + n = suc (m + n)
+
+; (ℕ → ℕ) → ℕ
+; (plus (do-plus a b) n)
+(plus ?(do-plus (zero) n) n)
+[(plus ?(do-plus (suc m) n) (suc res)) <--
+    (plus !(do-plus m n) res)]
+; [(do-plus (suc m) n) --> (do-plus m n)]
+
+(print-plus-2-3 {plus !(do-plus (suc (suc (zero))) (suc (suc (suc (zero)))))})
+
+; 'equiv~ is reflexive
+('Downarrow~ "equiv-refl"
+    ('mt~)
+    (conclusion ?('equiv~ a a)))
+
+; for each ADT we need define a equiv rule for it
+('Downarrow~ "suc-equiv"
+    (premise1 ?('equiv~ a b))
+    (conclusion ?('equiv~ (suc a)
+                    (suc b))))
+
+; 'equiv~ is transitive
+('Downarrow~ "equiv-trans"
+    (premise2 ?('equiv~ a b)
+              ?('equiv~ b c))
+    (conclusion ?('equiv~ a c)))
+
+; write the inference rules for the plus relation
+('Downarrow~ "plus-0"
+    ('mt~)
+    (conclusion ?('equiv~ (do-plus (zero) n)
+                    n)))
+('Downarrow~ "plus-ind"
+    ('mt~)
+    (conclusion ?('equiv~ (do-plus (suc m) n)
+                    (suc (do-plus m n)))))
+
+; write the proof tree for (+ 2 3) = 5
+; (do-plus (suc (suc (zero))) (suc (suc (suc (zero)))))
+(goal-2-3-5
+    ('equiv~ (do-plus (suc (suc (zero)))
+                (suc (suc (suc (zero)))))
+       (suc (suc (suc (suc (suc (zero))))))))
+(proof-for-2-3-5 (proof {goal-2-3-5} "equiv-trans" (sub-proof2 {proof-1-a} {proof-1-b})))
+(subgoal-1-a
+    ('equiv~ (do-plus (suc (suc (zero)))
+                (suc (suc (suc (zero)))))
+       (suc (do-plus (suc (zero))
+                     (suc (suc (suc (zero))))))))
+(proof-1-a (proof {subgoal-1-a} "plus-ind" ('mt~)))
+(subgoal-1-b
+    ('equiv~ (suc (do-plus (suc (zero))
+                    (suc (suc (suc (zero))))))
+       (suc (suc (suc (suc (suc (zero))))))))
+(proof-1-b (proof {subgoal-1-b} "suc-equiv" (sub-proof1 {proof-2-a})))
+(subgoal-2-a
+    ('equiv~ (do-plus (suc (zero))
+                (suc (suc (suc (zero)))))
+       (suc (suc (suc (suc (zero)))))))
+(proof-2-a (proof {subgoal-2-a} "equiv-trans" (sub-proof2 {proof-3-a} {proof-3-b})))
+(sub-goal-3-a
+    ('equiv~ (do-plus (suc (zero))
+                (suc (suc (suc (zero)))))
+       (suc (do-plus (zero)
+                     (suc (suc (suc (zero))))))))
+(proof-3-a (proof {sub-goal-3-a} "plus-ind" ('mt~)))
+(subgoal-3-b
+    ('equiv~ (suc (do-plus (zero)
+                     (suc (suc (suc (zero))))))
+       (suc (suc (suc (suc (zero)))))))
+(proof-3-b (proof {subgoal-3-b} "suc-equiv" (sub-proof1 {proof-4-a})))
+(subgoal-4-a
+    ('equiv~ (do-plus (zero)
+                (suc (suc (suc (zero)))))
+       (suc (suc (suc (zero))))))
+(proof-4-a (proof {subgoal-4-a} "plus-0" ('mt~)))
+('qed~ {proof-for-2-3-5})
+
+[(print-plus-2-3-5-check-res "pass") <-- (theorem {proof-for-2-3-5})]
+
+; ---------------------------------------------
+; PREDEFINED RULES
+; ---------------------------------------------
+; Implemenation of intutionistic proof checking
+
+[('qed~ p) --> (check-proof p)]
+
+; popluating proof check request
+[(check-proof (proof judegement rule-name (sub-proof1 sub-pf1)))
+ -->
+ (check-proof sub-pf1)]
+
+[(check-proof (proof judegement rule-name (sub-proof2 sub-pf1 sub-pf2)))
+ -->
+ (check-proof sub-pf1)
+ (check-proof sub-pf2)]
+
+; we can check whether a proof tree is valid using slog rule
+; base case, if premise for a proof empty then it is valid
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name ('mt~)))
+ ('Downarrow~ rule-name ('mt~) (conclusion judegement))
+ -->
+ (theorem proof-obj)]
+
+; inductive cases
+; if all premise in a applied rule hold(or we say has a theorem/fact attach to it) then
+; conclusion hold(is a theorem)
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof1 (proof pr1 rule-for-pr1 rest-proof-pr1))))
+ ('Downarrow~ rule-name (premise1 pr1) (conclusion judegement))
+ (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
+ -->
+ (theorem proof-obj)]
+
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof2 (proof pr1 rule-for-pr1 rest-proof-pr1)
+                    (proof pr2 rule-for-pr2 rest-proof-pr2))))
+ ('Downarrow~ rule-name (premise2 pr1 pr2) (conclusion judegement))
+ (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
+ (theorem (proof pr2 rule-for-pr2 rest-proof-pr2))
+ -->
+ (theorem proof-obj)]
+
+

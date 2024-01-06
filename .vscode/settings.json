@@ -25,7 +25,9 @@
                 {"ugly": "'nat~", "pretty": "ℕ"},
                 {"ugly": "'mu~", "pretty": "μ"},
                 {"ugly": "'times~", "pretty": "×"},
-                {"ugly": "'oplus~", "pretty": "⊕"}
+                {"ugly": "'oplus~", "pretty": "⊕"},
+                {"ugly": "'equiv~", "pretty": "≡"},
+                {"ugly": "'qed~", "pretty": "■"}
             ]
         }
     ]
