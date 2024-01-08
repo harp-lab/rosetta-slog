@@ -1,0 +1,57 @@
+
+; check if as var is free var in a lambda term
+
+(lambda "x"
+    (lambda "y"
+        (app (var "x") (var "y"))))
+
+; free-var naive way
+(free-var x ?(var x))
+[(free-var x ?(lambda y body)) <--
+    (=/= x y) (free-var x boy)]
+[(free-var x ?(app func arg)) <--
+    (free-var x func)
+    (free-var x arg)]
+
+; bottom-up not caputred free var
+(fv-huh x ?(var x) ('top~))
+[(=/= x y) (var x) --> (fv-huh x ?(var y) ('bot~))]
+[(fv-huh x ?(lambda y body) res) <--
+    (=/= x y) (fv-huh x body res)]
+(fv-huh x ?(lambda x body) ('bot~))
+[(fv-huh x ?(app func arg) ('top~)) <--
+    (fv-huh x func ('top~))
+    (fv-huh x arg ('top~))]
+[(fv-huh x ?(app func arg) ('bot~)) <--
+    (fv-huh x func ('bot~))]
+[(fv-huh x ?(app func arg) ('bot~)) <--
+    (fv-huh x arg ('bot~))]
+
+; populates all bindings first
+(free-var-huh ?(check-fv x (var x)) ('top~))
+[(=/= x y) --> (free-var-huh ?(check-fv x (var y)) ('bot~))]
+(free-var-huh ?(check-fv x (lambda x body)) ('bot~))
+[(=/= x y)
+ (free-var-huh !(check-fv x body) body-res) -->
+    (free-var-huh ?(check-fv x (lambda y body)) body-res)]
+[(free-var-huh ?(check-fv x (app func arg)) ('top~)) <--
+    (free-var-huh !(check-fv x func) ('top~))
+    (free-var-huh !(check-fv x arg) ('top~))]
+[(free-var-huh ?(check-fv x (app func arg)) ('bot~)) <--
+    (free-var-huh !(check-fv x func) ('bot~))]
+[(free-var-huh ?(check-fv x (app func arg)) ('bot~)) <--
+    (free-var-huh !(check-fv x arg) ('bot~))]
+
+; (fv-test1 (check-fv "x" (lambda "x" (var "x"))))
+(fv-test2 (check-fv "x" (lambda "y" (var "x"))))
+; (fv-test3 (check-fv "x" (lambda "y" (var "y"))))
+; (fv-test4 (check-fv "x" (lambda "y" (app (var "x") (var "y")))))
+; (print "test1" {free-var-huh {fv-test1}})
+(print "test2" {free-var-huh {fv-test2}})
+; (print "test3" {free-var-huh {fv-test3}})
+; (print "test4" {free-var-huh {fv-test4}})
+
+; #1      (print "test1" ('bot~ ))
+; #4      (print "test2" ('top~ ))
+; #2      (print "test3" ('bot~ ))
+; #3      (print "test4" ('bot~ ))

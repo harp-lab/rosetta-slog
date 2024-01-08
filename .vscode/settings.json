@@ -17,6 +17,7 @@
                 {"ugly": "'mt~", "pretty": "Ø"},
                 {"ugly": "'in~", "pretty": "∈"},
                 {"ugly": "'pi~", "pretty": "π"},
+                {"ugly": "'Pi~", "pretty": "Π"},
                 {"ugly": "'Downarrow~", "pretty": "⇓"},
                 {"ugly": "'multimap~", "pretty": "⊸"},
                 {"ugly": "'otimes~", "pretty": "⊗"},
@@ -27,7 +28,15 @@
                 {"ugly": "'times~", "pretty": "×"},
                 {"ugly": "'oplus~", "pretty": "⊕"},
                 {"ugly": "'equiv~", "pretty": "≡"},
-                {"ugly": "'qed~", "pretty": "■"}
+                {"ugly": "'qed~", "pretty": "■"},
+                {"ugly": "type-bind", "pretty": "::"},
+                {"ugly": "term-bind", "pretty": ":"},
+                {"ugly": "'mapsto~", "pretty": "↦"},
+                {"ugly": "'star~", "pretty": "*"},
+                {"ugly": "'top~", "pretty": "⊤"},
+                {"ugly": "'bot~", "pretty": "⊥"},
+                {"ugly": "'beta~", "pretty": "β"},
+                {"ugly": "'RightTeeVector~", "pretty": "⥛"}
             ]
         }
     ]

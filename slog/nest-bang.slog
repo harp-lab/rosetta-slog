@@ -1,0 +1,7 @@
+('RightTeeVector~ ?(LF-check 'Gamma~ ('star~)))
+[('RightTeeVector~ !(LF-check 'Gamma~ (type-bind T ('star~))))
+ ('RightTeeVector~ !(LF-check (ctx (term-bind x T) 'Gamma~) K))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('Pi~ x T K)))]
+
+(LF-check ('mt~) ('Pi~ (var "x") (Bool) ('star~)))
