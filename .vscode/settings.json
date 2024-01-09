@@ -41,8 +41,11 @@
                 {"ugly": "'typ~", "pretty": "类型"},
                 {"ugly": "'macro~", "pretty": "⇻"},
                 {"ugly": "'expand~", "pretty": "§"},
+                {"ugly": "'try-type~", "pretty": "⤑"},
+                {"ugly": "'try-kind~", "pretty": "⇢"},
                 {"ugly": "(Prop)", "pretty": "ℙ"},
-                {"ugly": "(Prop )", "pretty": "ℙ"}
+                {"ugly": "(Prop )", "pretty": "ℙ"},
+                
             ]
         }
     ]

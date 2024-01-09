@@ -4,6 +4,104 @@
 ; this file is used to debug and verify the type checker
 
 ; ---------------------------------------------
+; typing rule helper functions
+
+; predicate if binding is in an context
+('in~ ?(ctx bind rest) bind)
+[('in~ res bind1) --> ('in~ ?(ctx bind res) bind1)]
+
+; free variable
+(free-var-huh ?(check-fv x (var x)) ('top~))
+[(=/= x y) --> (free-var-huh ?(check-fv x (var y)) ('bot~))]
+
+(free-var-huh ?(check-fv x ('lambda~ x T body)) ('bot~))
+[(free-var-huh ?(check-fv x ('lambda~ y T body)) ('top~)) <--
+    (=/= x y)
+    (free-var-huh !(check-fv x body) ('top~))
+    (free-var-huh !(check-fv x T) ('top~))]
+[(free-var-huh ?(check-fv x ('lambda~ y T body)) ('bot~)) <--
+    (=/= x y)
+    (free-var-huh !(check-fv x body) ('bot~))]
+[(free-var-huh ?(check-fv x ('lambda~ y T body)) ('bot~)) <--
+    (=/= x y)
+    (free-var-huh !(check-fv x T) ('bot~))]
+
+[(free-var-huh ?(check-fv x (app func arg)) ('top~)) <--
+    (free-var-huh !(check-fv x func) ('top~))
+    (free-var-huh !(check-fv x arg) ('top~))]
+[(free-var-huh ?(check-fv x (app func arg)) ('bot~)) <--
+    (free-var-huh !(check-fv x func) ('bot~))]
+[(free-var-huh ?(check-fv x (app func arg)) ('bot~)) <--
+    (free-var-huh !(check-fv x arg) ('bot~))]
+
+(free-var-huh ?(check-fv x (type T-name)) ('bot~))
+
+(free-var-huh ?(check-fv x ('Pi~ x T K)) ('bot~))
+[(free-var-huh ?(check-fv x ('Pi~ y T K)) ('top~)) <--
+    (=/= x y)
+    (free-var-huh !(check-fv x T) ('top~))
+    (free-var-huh !(check-fv x K) ('top~))]
+[(free-var-huh ?(check-fv x ('Pi~ y T K)) ('bot~)) <--
+    (=/= x y)
+    (free-var-huh !(check-fv x T) ('bot~))]
+[(free-var-huh ?(check-fv x ('Pi~ y T K)) ('bot~)) <--
+    (=/= x y)
+    (free-var-huh !(check-fv x K) ('bot~))]
+
+[(free-var-huh ?(check-fv x (t-app T-func t-arg)) ('top~)) <--
+    (free-var-huh !(check-fv x T-func) ('top~))
+    (free-var-huh !(check-fv x t-arg) ('top~))]
+[(free-var-huh ?(check-fv x (t-app T-func t-arg)) ('bot~)) <--
+    (free-var-huh !(check-fv x T-func) ('bot~))]
+[(free-var-huh ?(check-fv x (t-app T-func t-arg)) ('bot~)) <--
+    (free-var-huh !(check-fv x t-arg) ('bot~))]
+
+(free-var-huh ?(check-fv x ('star~)) ('bot~))
+; free var for pi in kind is covered by free var for pi in type
+
+; NOTE subst here is not capture avoiding
+; substitution for term in kind
+(subst-kind ?(do-subst-kind x t ('star~)) ('star~))
+[(subst-kind
+    ?(do-subst-kind x t
+        ('Pi~ xk T K))
+    ('Pi~ xk T-substed K-substed)) <--
+    (subst-type !(do-subst-type x t T) T-substed)
+    (subst-kind !(do-subst-kind x t K) K-substed)]
+; substitution for term in type
+(subst-type ?(do-subst-type x t (type T-name)) (type T-name))
+[(subst-type
+    ?(do-subst-type x t
+        ('Pi~ T-arg T-Targ T-body))
+    ('Pi~ T-arg T-Targ-substed T-body-substed)) <--
+    (subst-type !(do-subst-type x t T-Targ) T-Targ-substed)
+    (subst-type !(do-subst-type x t T-body) T-body-substed)]
+[(subst-type
+    ?(do-subst-type x t
+        (t-app T-func t-arg))
+    (t-app T-func-substed t-arg-substed)) <--
+    (subst-type !(do-subst-type x t T-func) T-func-substed)
+    (subst-term !(do-subst-term x t t-arg) t-arg-substed)]
+; substitution for term in term
+(subst-term ?(do-subst-term x t (var x)) t)
+[(=/= x y) --> (subst-term ?(do-subst-term x t (var y)) (var y))]
+;
+[(subst-term ?(do-subst-term x t ('lambda~ arg T-arg body))
+    ('lambda~ arg T-arg-substed body-substed)) <--
+    (subst-term !(do-subst-term x t body) body-substed)
+    (subst-type !(do-subst-type x t T-arg) T-arg-substed)]
+[(subst-term ?(do-subst-term x t (app func arg))
+    (app func-substed arg-substed)) <--
+    (subst-term !(do-subst-term x t func) func-substed)
+    (subst-term !(do-subst-term x t arg) arg-substed)]
+
+; materialize & rename, make it reads better
+[('mapsto~ x t K K-substed) <-- (subst-kind (do-subst-kind x t K) K-substed)]
+[('mapsto~ x t T T-substed) <-- (subst-type (do-subst-type x t T) T-substed)]
+[('mapsto~ x t t t-substed) <-- (subst-term (do-subst-term x t t) t-substed)]
+
+
+; ---------------------------------------------
 ; typing rules
 
 ; well-formed kind [Γ ⊢ K]
