@@ -1,0 +1,75 @@
+
+; Inductive natural number definition
+
+; First we need focus on "equality" 
+; ≡ is reflexive, symmetric and transitive
+
+
+
+; ---------------------------------------------
+; PREDEFINED RULES
+; ---------------------------------------------
+; Implemenation of intutionistic proof checking
+
+[('qed~ p) --> (check-proof p)]
+
+; popluating proof check request
+[(check-proof (proof judegement rule-name (sub-proof1 sub-pf1)))
+ -->
+ (check-proof sub-pf1)]
+
+[(check-proof (proof judegement rule-name (sub-proof2 sub-pf1 sub-pf2)))
+ -->
+ (check-proof sub-pf1)
+ (check-proof sub-pf2)]
+
+[(check-proof (proof judegement rule-name (sub-proof3 sub-pf1 sub-pf2 sub-pf3)))
+ -->
+ (check-proof sub-pf1)
+ (check-proof sub-pf2) 
+ (check-proof sub-pf3)]
+
+; we can check whether a proof tree is valid using slog rule
+; base case, if premise for a proof empty then it is valid
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name ('mt~)))
+ ('Downarrow~ rule-name ('mt~) (conclusion judegement))
+ -->
+ (theorem proof-obj)]
+
+; inductive cases
+; if all premise in a applied rule hold(or we say has a theorem/fact attach to it) then
+; conclusion hold(is a theorem)
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof1 (proof pr1 rule-for-pr1 rest-proof-pr1))))
+ ('Downarrow~ rule-name (premise1 pr1) (conclusion judegement))
+ (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
+ -->
+ (theorem proof-obj)]
+
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof2 (proof pr1 rule-for-pr1 rest-proof-pr1)
+                    (proof pr2 rule-for-pr2 rest-proof-pr2))))
+ ('Downarrow~ rule-name (premise2 pr1 pr2) (conclusion judegement))
+ (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
+ (theorem (proof pr2 rule-for-pr2 rest-proof-pr2))
+ -->
+ (theorem proof-obj)]
+
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof3 (proof pr1 rule-for-pr1 rest-proof-pr1)
+                    (proof pr2 rule-for-pr2 rest-proof-pr2)
+                    (proof pr3 rule-for-pr3 rest-proof-pr3))))
+ ('Downarrow~ rule-name (premise2 pr1 pr2 pr3) (conclusion judegement))
+ (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
+ (theorem (proof pr2 rule-for-pr2 rest-proof-pr2))
+ (theorem (proof pr3 rule-for-pr3 rest-proof-pr3))
+ -->
+ (theorem proof-obj)]

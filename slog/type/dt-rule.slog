@@ -1,0 +1,223 @@
+; pure first order dependent type ('lambda~LF)
+; based on advance topic in type and programming language
+; Charpter 2.2
+; this file is used to debug and verify the type checker
+
+; ---------------------------------------------
+; typing rules
+
+; well-formed kind [Γ ⊢ K]
+('Downarrow~ "wf-star"
+    ('mt~)
+    (conclusion ?('vdash~ ('star~) 'Gamma~)))
+('Downarrow~ "wf-pi"
+    (premise2 ?('vdash~ (type-bind T ('star~)) 'Gamma~)
+              ?('vdash~ K (ctx (term-bind x T) 'Gamma~)))
+    (conclusion ?('vdash~ ('Pi~ x T K) 'Gamma~)))
+; kinding [Γ ⊢ T::K]
+('Downarrow~ "k-var"
+    (premise2 ?('in~ 'Gamma~ (type-bind T K))
+              ?('vdash~ K 'Gamma~))
+    (conclusion ?('vdash~ (type-bind X K) 'Gamma~)))
+('Downarrow~ "k-pi"
+    (premise2 ?('vdash~ (type-bind T1 ('star~)) 'Gamma~)
+              ?('vdash~ (type-bind T2 ('star~)) (ctx (term-bind x T1) 'Gamma~)))
+    (conclusion ?('vdash~ (type-bind ('Pi~ x T1 T2) ('star~)) 'Gamma~)))
+('Downarrow~ "k-app"
+    (premise2 ?('vdash~ (type-bind S ('Pi~ x T K)) 'Gamma~')
+              ?('vdash~ (term-bind t T)))
+    (conclusion ?('vdash~ {'mapsto~ x t K} 'Gamma~)))
+('Downarrow~ "k-conv"
+    (premise2 ?('vdash~ (type-bind T K) 'Gamma~)
+              ?('vdash~ ('equiv~ K K') 'Gamma~))
+    (conclusion ?('vdash~ (type-bind T K') 'Gamma~)))
+; typing [Γ 'vdash~ t : T]
+('Downarrow~ "t-var"
+    (premise2 ?('in~ 'Gamma~ (term-bind x T))
+              ?('vdash~ (type-bind T ('star~)) 'Gamma~))
+    (conclusion ?('vdash~ (term-bind x T) 'Gamma~)))
+('Downarrow~ "t-abs"
+    (premise2 ?('vdash~ (type-bind S ('star~)) 'Gamma~)
+              ?('vdash~ (term-bind t T) (ctx (term-bind x T) 'Gamma~)))
+    (conclusion ?('vdash~ (term-bind ('lambda~ x S t) ('Pi~ x S T)) 'Gamma~)))
+('Downarrow~ "t-app"
+    (premise2 ?('vdash~ (term-bind t1 ('Pi~ x S T)) 'Gamma~)
+              ?('vdash~ (term-bind t2 S) 'Gamma~))
+    (conclusion ?('vdash~ (term-bind (app t1 t2) {'mapsto~ x t2 T}) 'Gamma~)))
+('Downarrow~ "t-conv"
+    (premise2 ?('vdash~ (term-bind t T) 'Gamma~)
+              ?('vdash~ (type-bind ('equiv~ T T') ('star~)) 'Gamma~))
+    (conclusion ?('vdash~ (term-bind t T') 'Gamma~)))
+; Kind Equivalence [Γ ⊢ K ≡ K']
+('Downarrow~ "qk-pi"
+    (premise2 ?('vdash~ (type-bind ('equiv~ T1 T2) ('star~)) 'Gamma~)
+              ?('vdash~ (type-bind ('equiv~ K1 K2)) (ctx (term-bind x T1) 'Gamma~)))
+    (conclusion ?('vdash~ ('equiv~ ('Pi~ x T1 K1) 
+                       ('Pi~ x T2 K2)) 'Gamma~)))
+('Downarrow~ "qk-refl"
+    (premise1 ?('vdash~ K 'Gamma~))
+    (conclusion ?('vdash~ ('equiv~ K K) 'Gamma~)))
+('Downarrow~ "qk-sym"
+    (premise1 ?('vdash~ ('equiv~ K1 K2) 'Gamma~))
+    (conclusion ?('vdash~ ('equiv~ K2 K1) 'Gamma~)))
+('Downarrow~ "qk-trans"
+    (premise2 ?('vdash~ ('equiv~ K1 K2) 'Gamma~)
+              ?('vdash~ ('equiv~ K2 K3) 'Gamma~))
+    (conclusion ?('vdash~ ('equiv~ K1 K3) 'Gamma~)))
+; Type Equivalence [Γ ⊢ S ≡ T :: K]
+('Downarrow~ "qt-pi"
+    (premise2 ?('vdash~ (type-bind ('equiv~ S1 T2) ('star~)) 'Gamma~)
+              ?('vdash~ (type-bind ('equiv~ S2 T2) ('star~)) (ctx (term-bind x T1) 'Gamma~)))
+    (conclusion ?('vdash~ (type-bind ('equiv~ ('Pi~ x S1 S2) 
+                           ('Pi~ x T1 T2))
+                        ('star~)) 'Gamma~)))
+('Downarrow~ "qt-app"
+    (premise2 ?('vdash~ (type-bind ('equiv~ S1 S1) ('Pi~ x T K)) 'Gamma~)
+              ?('vdash~ (term-bind ('equiv~ t1 t2) T) 'Gamma~))
+    (conclusion ?('vdash~ (term-bind ('equiv~ (t-app S1 t1) 
+                          (t-app S2 t2))
+                       {'mapsto~ x t1 K}) 'Gamma~)))
+('Downarrow~ "qt-refl"
+    (premise1 ?('vdash~ (term-bind T K) 'Gamma~))               ; why it is term-bind? not type-bind?
+    (conclusion ?('vdash~ (type-bind ('equiv~ T T) K) 'Gamma~)))
+('Downarrow~ "qt-refl-2"
+    (premise1 ?('vdash~ (type-bind T K) 'Gamma~))               ; maybe this is correct?
+    (conclusion ?('vdash~ (type-bind ('equiv~ T T) K) 'Gamma~)))
+('Downarrow~ "qt-sym"
+    (premise1 ?('vdash~ (type-bind ('equiv~ T S) K) 'Gamma~))
+    (conclusion ?('vdash~ (type-bind ('equiv~ S T) K) 'Gamma~)))
+('Downarrow~ "qt-trans"
+    (premise2 ?('vdash~ (type-bind ('equiv~ S U) K) 'Gamma~)
+              ?('vdash~ (type-bind ('equiv~ U T) K) 'Gamma~))
+    (conclusion ?('vdash~ (type-bind ('equiv~ S T) K) 'Gamma~)))
+; term equivalence [Γ ⊢ t1≡t2 : T]
+('Downarrow~ "q-abs"
+    (premise2 ?('vdash~ (type-bind ('equiv~ S1 S2) ('star~)) 'Gamma~)
+              ?('vdash~ (term-bind ('equiv~ t1 t2) T) (ctx (term-bind x S1) 'Gamma~)))
+    (conclusion ?('vdash~ (term-bind ('equiv~ ('lambda~ x S1 t1) 
+                          ('lambda~ x S2 t2))
+                       ('Pi~ x S1 T)) 'Gamma~)))
+('Downarrow~ "q-app"                                    ; reduce type of app
+    (premise2 ?('vdash~ (term-bind ('equiv~ t1 s1) ('Pi~ x S T)) 'Gamma~)
+              ?('vdash~ (term-bind ('equiv~ t2 s2) S) 'Gamma~))
+    (conclusion ?('vdash~ (term-bind ('equiv~ (app t1 t2) 
+                          (app s2 s2))
+                       {'mapsto~ x t2 T}) 'Gamma~)))
+('Downarrow~ "q-beta"                                   ; reduce app
+    (premise2 ?('vdash~ (term-bind t T) (ctx (term-bind x S) 'Gamma~))
+              ?('vdash~ (term-bind s S) 'Gamma~))
+    (conclusion ?('vdash~ (term-bind ('equiv~ (app ('lambda~ x S t) s)
+                          {'mapsto~ x s t}) 
+                       {'mapsto~ x t2 T}) 'Gamma~)))
+('Downarrow~ "q-eta"
+    (premise2 ?('vdash~ (term-bind t ('Pi~ x S T)) 'Gamma~)
+              ?(free-var-huh (check-fv x t) ('bot~)))
+    (conclusion ?('vdash~ (term-bind ('equiv~ ('lambda~ x T (app t (var x))) t)
+                       ('Pi~ x S T)) 'Gamma~)))
+('Downarrow~ "q-refl"
+    (premise1 ?('vdash~ (term-bind t T) 'Gamma~))
+    (conclusion ?('vdash~ (term-bind ('equiv~ t t) T) 'Gamma~)))
+('Downarrow~ "q-sym"
+    (premise1 ?('vdash~ (term-bind ('equiv~ t s) T) 'Gamma~))
+    (conclusion ?('vdash~ (term-bind ('equiv~ s t) T) 'Gamma~)))
+('Downarrow~ "q-trans"
+    (premise2 ?('vdash~ (term-bind ('equiv~ s u) T) 'Gamma~)
+              ?('vdash~ (term-bind ('equiv~ u t) T) 'Gamma~))
+    (conclusion ?('vdash~ (term-bind ('equiv~ s t) T) 'Gamma~)))
+
+; ---------------------------------------------
+; Calculus of Constructions
+; extended term
+; universal quantification
+(all "x" (type "T") (var "x"))
+; extended type
+(Prop)
+(Prf)
+; extending kinding
+('Downarrow~ "k-prop"
+    ('mt~)
+    (conclusion ?('vdash~ (type-bind (Prop) ('star~)) 'Gamma~)))
+('Downarrow~ "k-prf"
+    ('mt~)
+    (conclusion ?('vdash~ (type-bind (Prf) ('Pi~ x (Prop) ('star~))) 'Gamma~)))
+; extending typing
+('Downarrow~ "t-all"
+    (premise2 ?('vdash~ (type-bind T ('star~)) 'Gamma~)
+              ?('vdash~ (term-bind t (Prop)) (ctx (term-bind x T) 'Gamma~)))
+    (conclusion ?('vdash~ (term-bind (all x T t) (Prop)) 'Gamma~)))
+('Downarrow~ "qt-all"
+    (premise2 ?('vdash~ (type-bind T ('star~)) 'Gamma~)
+              ?('vdash~ (type-bind t (Prop)) (ctx (term-bind x T) 'Gamma~)))
+    (conclusion ?('vdash~ (type-bind ('equiv~ (t-app Prf (all x T t))
+                           ('Pi~ x T (t-app Prf t)))
+                        ('star~)) 'Gamma~)))
+
+
+; ---------------------------------------------
+; PREDEFINED RULES
+; ---------------------------------------------
+; Implemenation of intutionistic proof checking
+
+[('qed~ p) --> (check-proof p)]
+
+; popluating proof check request
+[(check-proof (proof judegement rule-name (sub-proof1 sub-pf1)))
+ -->
+ (check-proof sub-pf1)]
+
+[(check-proof (proof judegement rule-name (sub-proof2 sub-pf1 sub-pf2)))
+ -->
+ (check-proof sub-pf1)
+ (check-proof sub-pf2)]
+
+[(check-proof (proof judegement rule-name (sub-proof3 sub-pf1 sub-pf2 sub-pf3)))
+ -->
+ (check-proof sub-pf1)
+ (check-proof sub-pf2) 
+ (check-proof sub-pf3)]
+
+; we can check whether a proof tree is valid using slog rule
+; base case, if premise for a proof empty then it is valid
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name ('mt~)))
+ ('Downarrow~ rule-name ('mt~) (conclusion judegement))
+ -->
+ (theorem proof-obj)]
+
+; inductive cases
+; if all premise in a applied rule hold(or we say has a theorem/fact attach to it) then
+; conclusion hold(is a theorem)
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof1 (proof pr1 rule-for-pr1 rest-proof-pr1))))
+ ('Downarrow~ rule-name (premise1 pr1) (conclusion judegement))
+ (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
+ -->
+ (theorem proof-obj)]
+
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof2 (proof pr1 rule-for-pr1 rest-proof-pr1)
+                    (proof pr2 rule-for-pr2 rest-proof-pr2))))
+ ('Downarrow~ rule-name (premise2 pr1 pr2) (conclusion judegement))
+ (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
+ (theorem (proof pr2 rule-for-pr2 rest-proof-pr2))
+ -->
+ (theorem proof-obj)]
+
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof3 (proof pr1 rule-for-pr1 rest-proof-pr1)
+                    (proof pr2 rule-for-pr2 rest-proof-pr2)
+                    (proof pr3 rule-for-pr3 rest-proof-pr3))))
+ ('Downarrow~ rule-name (premise2 pr1 pr2 pr3) (conclusion judegement))
+ (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
+ (theorem (proof pr2 rule-for-pr2 rest-proof-pr2))
+ (theorem (proof pr3 rule-for-pr3 rest-proof-pr3))
+ -->
+ (theorem proof-obj)]
+

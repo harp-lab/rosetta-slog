@@ -7,7 +7,7 @@
 ; var
 (var "x")
 ; abstraction
-('lambda~ "x" (var "x"))
+('lambda~ "x" (type "T") (var "x"))
 ; application
 (app ('lambda~ "x" (var "x")) (var "y"))
 
@@ -21,7 +21,7 @@
 ; dependent product type
 ('Pi~ "x" (type "T") (type "T"))
 ; type family application
-(type-app (type "T") (var "x"))
+(t-app (type "T") (var "x"))
 
 ; kind
 ; kind of proper type
@@ -80,12 +80,12 @@
     (=/= x y)
     (free-var-huh !(check-fv x K) ('bot~))]
 
-[(free-var-huh ?(check-fv x (type-app T-func t-arg)) ('top~)) <--
+[(free-var-huh ?(check-fv x (t-app T-func t-arg)) ('top~)) <--
     (free-var-huh !(check-fv x T-func) ('top~))
     (free-var-huh !(check-fv x t-arg) ('top~))]
-[(free-var-huh ?(check-fv x (type-app T-func t-arg)) ('bot~)) <--
+[(free-var-huh ?(check-fv x (t-app T-func t-arg)) ('bot~)) <--
     (free-var-huh !(check-fv x T-func) ('bot~))]
-[(free-var-huh ?(check-fv x (type-app T-func t-arg)) ('bot~)) <--
+[(free-var-huh ?(check-fv x (t-app T-func t-arg)) ('bot~)) <--
     (free-var-huh !(check-fv x t-arg) ('bot~))]
 
 (free-var-huh ?(check-fv x ('star~)) ('bot~))
@@ -110,13 +110,13 @@
     (subst-type !(do-subst-type x t T-body) T-body-substed)]
 [(subst-type
     ?(do-subst-type x t
-        (type-app T-func t-arg))
-    (type-app T-func-substed t-arg-substed)) <--
+        (t-app T-func t-arg))
+    (t-app T-func-substed t-arg-substed)) <--
     (subst-type !(do-subst-type x t T-func) T-func-substed)
     (subst-term !(do-subst-term x t t-arg) t-arg-substed)]
 ; substitution for term in term
 (subst-term ?(do-subst-term x t (var x)) t)
-[(=/= x y) --> (subst-term ?(do-subst-term x t (var y)) (var y)))]
+[(=/= x y) --> (subst-term ?(do-subst-term x t (var y)) (var y))]
 ;
 [(subst-term ?(do-subst-term x t ('lambda~ arg T-arg body))
     ('lambda~ arg T-arg-substed body-substed)) <--
@@ -128,131 +128,9 @@
     (subst-term !(do-subst-term x t arg) arg-substed)]
 
 ; materialize & rename, make it reads better
-[('mapsto~ x t K K-substed) <-- (subst-kind ?(do-subst-kind x t K) K-substed)]
-[('mapsto~ x t T T-substed) <-- (subst-type ?(do-subst-type x t T) T-substed)]
-[('mapsto~ x t t t-substed) <-- (subst-term ?(do-subst-term x t t) t-substed)]
-
-; ---------------------------------------------
-; typing rules
-
-; well-formed kind [Γ ⊢ K]
-('Downarrow~ "wf-star"
-    ('mt~)
-    (conclusion ?('vdash~ ('star~) 'Gamma~)))
-('Downarrow~ "wf-pi"
-    (premise2 ?('vdash~ (type-bind T ('star~)) 'Gamma~)
-              ?('vdash~ K (ctx (term-bind x T) 'Gamma~)))
-    (conclusion ?('vdash~ ('Pi~ x T K) 'Gamma~)))
-; kinding [Γ ⊢ T::K]
-('Downarrow~ "k-var"
-    (premise2 ?('in~ 'Gamma~ ?(type-bind T K))
-              ?('vdash~ K 'Gamma~))
-    (conclusion ?('vdash~ (type-bind X K) 'Gamma~)))
-('Downarrow~ "k-pi"
-    (premise2 ?('vdash~ (type-bind T1 ('star~)) 'Gamma~)
-              ?('vdash~ (type-bind T2 ('star~)) (ctx (term-bind x T1) 'Gamma~)))
-    (conclusion ?('vdash~ (type-bind ('Pi~ x T1 T2) ('star~)) 'Gamma~)))
-('Downarrow~ "k-app"
-    (premise2 ?('vdash~ (type-bind S ('Pi~ x T K)) 'Gamma~')
-              ?('vdash~ (term-bind t T)))
-    (conclusion ?('vdash~ {'mapsto~ x t K} 'Gamma~)))
-('Downarrow~ "k-conv"
-    (premise2 ?('vdash~ (type-bind T K) 'Gamma~)
-              ?('vdash~ ('equiv~ K K') 'Gamma~))
-    (conclusion ?('vdash~ (type-bind T K') 'Gamma~)))
-; typing [Γ 'vdash~ t : T]
-('Downarrow~ "t-var"
-    (premise2 ?('in~ 'Gamma~ ?(term-bind x T))
-              ?('vdash~ (type-bind T ('star~)) 'Gamma~))
-    (conclusion ?('vdash~ (term-bind x T) 'Gamma~)))
-('Downarrow~ "t-abs"
-    (premise2 ?('vdash~ (type-bind S ('star~)) 'Gamma~)
-              ?('vdash~ (term-bind t T) (ctx (term-bind x T) 'Gamma~)))
-    (conclusion ?('vdash~ (term-bind ('lambda~ x S t) ('Pi~ x S T)) 'Gamma~)))
-('Downarrow~ "t-app"
-    (premise2 ?('vdash~ (term-bind t1 ('Pi~ x S T)) 'Gamma~)
-              ?('vdash~ (term-bind t2 S) 'Gamma~))
-    (conclusion ?('vdash~ (term-bind (app t1 t2) {'mapsto~ x t2 T}) 'Gamma~)))
-('Downarrow~ "t-conv"
-    (premise2 ?('vdash~ (term-bind t T) 'Gamma~)
-              ?('vdash~ (type-bind ('equiv~ T T') ('star~)) 'Gamma~))
-    (conclusion ?('vdash~ (term-bind t T') 'Gamma~)))
-; Kind Equivalence [Γ ⊢ K ≡ K']
-('Downarrow~ "qk-pi"
-    (premise2 ?('vdash~ (type-bind ('equiv~ T1 T2) ('star~)) 'Gamma~)
-              ?('vdash~ (type-bind ('equiv~ K1 K2)) (ctx (term-bind x T1) 'Gamma~)))
-    (conclusion ?('vdash~ ('equiv~ ('Pi~ x T1 K1) 
-                       ('Pi~ x T2 K2)) 'Gamma~)))
-('Downarrow~ "qk-refl"
-    (premise1 ?('vdash~ K 'Gamma~))
-    (conclusion ?('vdash~ ('equiv~ K K) 'Gamma~)))
-('Downarrow~ "qk-sym"
-    (premise1 ?('vdash~ ('equiv~ K1 K2) 'Gamma~))
-    (conclusion ?('vdash~ ('equiv~ K2 K1) 'Gamma~)))
-('Downarrow~ "qk-trans"
-    (premise2 ?('vdash~ ('equiv~ K1 K2) 'Gamma~)
-              ?('vdash~ ('equiv~ K2 K3) 'Gamma~))
-    (conclusion ?('vdash~ ('equiv~ K1 K3) 'Gamma~)))
-; Type Equivalence [Γ ⊢ S ≡ T :: K]
-('Downarrow~ "qt-pi"
-    (premise2 ?('vdash~ (type-bind ('equiv~ S1 T2) ('star~)) 'Gamma~)
-              ?('vdash~ (type-bind ('equiv~ S2 T2) ('star~)) (ctx (term-bind x T1) 'Gamma~)))
-    (conclusion ?('vdash~ (type-bind ('equiv~ ('Pi~ x S1 S2) 
-                           ('Pi~ x T1 T2))
-                        ('star~)) 'Gamma~)))
-('Downarrow~ "qt-app"
-    (premise2 ?('vdash~ (type-bind ('equiv~ S1 S1) ('Pi~ x T K)) 'Gamma~)
-              ?('vdash~ (term-bind ('equiv~ t1 t2) T) 'Gamma~))
-    (conclusion ?('vdash~ (term-bind ('equiv~ (type-app S1 t1) 
-                          (type-app S2 t2))
-                       {'mapsto~ x t1 K}) 'Gamma~)))
-('Downarrow~ "qt-refl"
-    (premise1 ?('vdash~ (term-bind T K) 'Gamma~))               ; why it is term-bind? not type-bind?
-    (conclusion ?('vdash~ (type-bind ('equiv~ T T) K) 'Gamma~)))
-('Downarrow~ "qt-refl-2"
-    (premise1 ?('vdash~ (type-bind T K) 'Gamma~))               ; maybe this is correct?
-    (conclusion ?('vdash~ (type-bind ('equiv~ T T) K) 'Gamma~)))
-('Downarrow~ "qt-sym"
-    (premise1 ?('vdash~ (type-bind ('equiv~ T S) K) 'Gamma~))
-    (conclusion ?('vdash~ (type-bind ('equiv~ S T) K) 'Gamma~)))
-('Downarrow~ "qt-trans"
-    (premise2 ?('vdash~ (type-bind ('equiv~ S U) K) 'Gamma~)
-              ?('vdash~ (type-bind ('equiv~ U T) K) 'Gamma~))
-    (conclusion ?('vdash~ (type-bind ('equiv~ S T) K) 'Gamma~)))
-; term equivalence [Γ ⊢ t1≡t2 : T]
-('Downarrow~ "q-abs"
-    (premise2 ?('vdash~ (type-bind ('equiv~ S1 S2) ('star~)) 'Gamma~)
-              ?('vdash~ (term-bind ('equiv~ t1 t2) T) (ctx (term-bind x S1) 'Gamma~)))
-    (conclusion ?('vdash~ (term-bind ('equiv~ ('lambda~ x S1 t1) 
-                          ('lambda~ x S2 t2))
-                       ('Pi~ x S1 T)) 'Gamma~)))
-('Downarrow~ "q-app"                                    ; reduce type of app
-    (premise2 ?('vdash~ (term-bind ('equiv~ t1 s1) ('Pi~ x S T)) 'Gamma~)
-              ?('vdash~ (term-bind ('equiv~ t2 s2) S) 'Gamma~))
-    (conclusion ?('vdash~ (term-bind ('equiv~ (app t1 t2) 
-                          (app s2 s2))
-                       {'mapsto~ x t2 T}) 'Gamma~)))
-('Downarrow~ "q-beta"                                   ; reduce app
-    (premise2 ?('vdash~ (term-bind t T) (ctx (term-bind x S) 'Gamma~))
-              ?('vdash~ (term-bind s S) 'Gamma~))
-    (conclusion ?('vdash~ (term-bind ('equiv~ (app ('lambda~ x S t) s)
-                          {'mapsto~ x s t}) 
-                       {'mapsto~ x t2 T}) 'Gamma~)))
-('Downarrow~ "q-eta"
-    (premise2 ?('vdash~ (term-bind t ('Pi~ x S T)) 'Gamma~)
-              ?(free-var-huh (check-fv x t) ('bot~)))
-    (conclusion ?('vdash~ (term-bind ('equiv~ ('lambda~ x T (app t (var x))) t)
-                       ('Pi~ x S T)) 'Gamma~)))
-('Downarrow~ "q-refl"
-    (premise1 ?('vdash~ (term-bind t T) 'Gamma~))
-    (conclusion ?('vdash~ (term-bind ('equiv~ t t) T) 'Gamma~)))
-('Downarrow~ "q-sym"
-    (premise1 ?('vdash~ (term-bind ('equiv~ t s) T) 'Gamma~))
-    (conclusion ?('vdash~ (term-bind ('equiv~ s t) T) 'Gamma~)))
-('Downarrow~ "q-trans"
-    (premise2 ?('vdash~ (term-bind ('equiv~ s u) T) 'Gamma~)
-              ?('vdash~ (term-bind ('equiv~ u t) T) 'Gamma~))
-    (conclusion ?('vdash~ (term-bind ('equiv~ s t) T) 'Gamma~)))
+[('mapsto~ x t K K-substed) <-- (subst-kind (do-subst-kind x t K) K-substed)]
+[('mapsto~ x t T T-substed) <-- (subst-type (do-subst-type x t T) T-substed)]
+[('mapsto~ x t t t-substed) <-- (subst-term (do-subst-term x t t) t-substed)]
 
 ; ---------------------------------------------
 ; proof checking algorithm
@@ -305,11 +183,19 @@
     -->
     ('RightTeeVector~ ?(LF-check 'Gamma~ (type-bind ('Pi~ x T1 T2) ('star~))))]
 ; ka-app
-[('RightTeeVector~ !(LF-check 'Gamma~ (type-bind S ('Pi~ x T1 K))))
- ('RightTeeVector~ !(LF-check 'Gamma~ (term-bind t T2)))
- ('RightTeeVector~ 'Gamma~ ('equiv~ T1 T2))
+[('RightTeeVector~ (LF-check 'Gamma~ (type-bind S ('Pi~ x T1 K))))
+ ('RightTeeVector~ (LF-check 'Gamma~ (term-bind t T2)))
+ ('RightTeeVector~ (LF-check 'Gamma~ ('equiv~ T1 T2)))
     -->
-    ('RightTeeVector~ ?(LF-check 'Gamma~ (term-bind (type-app S t) {'mapsto~ x t K})))]
+    ('RightTeeVector~ ?(LF-check 'Gamma~ (term-bind (t-app S t) {'mapsto~ x t K})))]
+[(LF-check 'Gamma~ (term-bind (t-app S t) {'mapsto~ x t K}))
+ ('equiv~ T1 T2)
+ (term-bind t T2)
+ ('Pi~ x T1 K)
+    -->
+    (LF-check 'Gamma~ (type-bind S ('Pi~ x T1 K)))
+    (LF-check 'Gamma~ (term-bind t T2))
+    (LF-check 'Gamma~ ('equiv~ T1 T2))]
 ; how do I issue subst here? stupid way is:
 [(type-bind S ('Pi~ x T1 K)) (term-bind t T2)
  ('equiv~ T1 T2)
@@ -326,11 +212,19 @@
     -->
     ('RightTeeVector~ ?(LF-check 'Gamma~ (term-bind ('lambda~ x S t) ('Pi~ x S T))))]
 ; ta-app
-[('RightTeeVector~ !(LF-check 'Gamma~ (term-bind t1 ('Pi~ x S1 T))))
- ('RightTeeVector~ !(LF-check 'Gamma~ (term-bind t2 S2)))
- ('RightTeeVector~ 'Gamma~ ('equiv~ S1 S2))
+[('RightTeeVector~ (LF-check 'Gamma~ (term-bind t1 ('Pi~ x S1 T))))
+ ('RightTeeVector~ (LF-check 'Gamma~ (term-bind t2 S2)))
+ ('RightTeeVector~ (LF-check 'Gamma~ ('equiv~ S1 S2)))
     -->
-    ('RightTeeVector~ ?(LF-check 'Gamma~ (term-bind (app t1 t2) {'mapsto~ x t2 T})))]
+    ('RightTeeVector~ (LF-check 'Gamma~ (term-bind (app t1 t2) {'mapsto~ x t2 T})))]
+[(LF-check 'Gamma~ (term-bind (app t1 t2) {'mapsto~ x t2 T}))
+ (term-bind t1 ('Pi~ x S1 T))
+ (term-bind t2 S2)
+ ('equiv~ S1 S2)
+    -->
+    (LF-check 'Gamma~ (term-bind t1 ('Pi~ x S1 T)))
+    (LF-check 'Gamma~ (term-bind t2 S2))
+    (LF-check 'Gamma~ ('equiv~ S1 S2))]
 [(term-bind t1 ('Pi~ x S1 T)) (term-bind t2 S2)
  ('equiv~ S1 S2)
     -->
@@ -358,7 +252,7 @@
 [('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ S1 S2)))
  ('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ t1 t2)))
     -->
-    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ (type-app S1 t1) (type-app S2 t2))))]
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ (t-app S1 t1) (t-app S2 t2))))]
 ; algorithmic term equivalence Γ ⥛ t1 ≡ t2 : T
 ; qa-wh
 [('equiv~ s t) --> (wh-norm s) (wh-norm t)]
@@ -391,70 +285,145 @@
 
 
 ; ---------------------------------------------
-; PREDEFINED RULES
+; algorithmic type checking for CC
+
+; beta reduction for all
+[('longrightarrow~-wh ?(wh-norm (all x T t)) (all x T t')) <--
+    ('longrightarrow~-wh !(wh-norm t) t')]
+
+; ka-prop
+('RightTeeVector~ ?(LF-check 'Gamma~ (type-bind (Prop) ('star~))))
+; ka-prf
+[('RightTeeVector~ !(LF-check 'Gamma~ (type-bind t (Prop))))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ (type-bind (t-app (Prf) t)
+                        ('star~))))]
+; qt-all-e
+[('RightTeeVector~ !(LF-check 'Gamma~ (type-bind T ('star~))))
+ ('RightTeeVector~ !(LF-check (ctx (term-bind x T) 'Gamma~) (type-bind t (Prop))))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ (term-bind (all x T t) (Prop))))]
+; qka-pi-prf
+[('longrightarrow~-wh !(wh-norm t) (all x T1 t2))
+ ('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ S1 T1)))
+ ('RightTeeVector~ !(LF-check (ctx (term-bind x S1) 'Gamma~) ('equiv~ S2 (t-app (Prf) t2))))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ ('Pi~ x S1 S2)
+                        (t-app (Prf) t))))]
+; qka-prf-pi
+[('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ ('Pi~ x S1 S2)
+                     (t-app (Prf) t))))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ (t-app (Prf) t)
+                    ('Pi~ x S1 S2))))]
+; qka-prf
+[('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ s t)))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ (t-app (Prf) s)
+                        (t-app (Prf) t))))]
+; qa-all-e
+[('RightTeeVector~ (LF-check 'Gamma~ ('equiv~ S1 T1)))
+ ('RightTeeVector~ (LF-check (ctx (term-bind x S1) 'Gamma~) ('equiv~ s t)))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~-wh (all x S1 s)
+                           (all x T1 t))))]
+[(LF-check 'Gamma~ ('equiv~-wh (all x S1 s)
+                   (all x T1 t)))
+ ('equiv~ S1 T1)
+ -->
+    (LF-check (ctx (term-bind x S1) 'Gamma~) ('equiv~ s t))
+    (LF-check (ctx (term-bind x S1) 'Gamma~) ('equiv~ s t))]
+
+
 ; ---------------------------------------------
-; Implemenation of intutionistic proof checking
+; encode Nat theory in LF
 
-[('qed~ p) --> (check-proof p)]
 
-; popluating proof check request
-[(check-proof (proof judegement rule-name (sub-proof1 sub-pf1)))
- -->
- (check-proof sub-pf1)]
+; I use a macro expansion like helper rule 'macro~ to make proof term reads easier
+; pretty print for "macro" is ⇻
+; pretty print for §
+('macro~ ?('expand~ (var x)) (var x))
+[('macro~ ?('expand~ ('lambda~ x T s))
+    ('lambda~ x T-expanded s-expanded)) <--
+    ('macro~ !('expand~ T) T-expanded)
+    ('macro~ !('expand~ s) s-expanded)]
+[('macro~ ?('expand~ (app func arg))
+    (app func-expanded arg-expanded)) <--
+    ('macro~ !('expand~ func) func-expanded)
+    ('macro~ !('expand~ arg) arg-expanded)]
+('macro~ ?('expand~ (type t)) (type t))
+[('macro~ ?('expand~ ('Pi~ x T-arg T-body))
+    ('Pi~ x T-arg-expanded T-body-expanded)) <--
+    ('macro~ !('expand~ T-arg) T-arg-expanded)
+    ('macro~ !('expand~ T-body) T-body-expanded)]
+[('macro~ ?('expand~ (t-app func arg))
+    (t-app func-expanded arg-expanded)) <--
+    ('macro~ !('expand~ func) func-expanded)
+    ('macro~ !('expand~ arg) arg-expanded)]
+('macro~ ?('expand~ ('star~)) ('star~))
+[('macro~ ?('expand~ (all x T t))
+    (all x T-expanded t-expanded)) <--
+    ('macro~ !('expand~ T) T-expanded)
+    ('macro~ !('expand~ t) t-expanded)]
+('macro~ ?('expand~ (Prop)) (Prop))
+('macro~ ?('expand~ (Prf)) (Prf))
+[('macro~ ?('expand~ ('equiv~ x y))
+    ('equiv~ x y)) <--
+    ('macro~ !('expand~ x) x-expanded)
+    ('macro~ !('expand~ y) y-expanded)]
+[('macro~ ?('expand~ (term-bind x T))
+    (term-bind x T-expanded)) <--
+    ('macro~ !('expand~ T) T-expanded)]
+[('macro~ ?('expand~ (type-bind T K))
+    (type-bind T K-expanded)) <--
+    ('macro~ !('expand~ K) K-expanded)]
 
-[(check-proof (proof judegement rule-name (sub-proof2 sub-pf1 sub-pf2)))
- -->
- (check-proof sub-pf1)
- (check-proof sub-pf2)]
+; use arrow to abbreviation
+; 'longrightarrow~ A B = 'Pi~ x A B
+[('macro~ ?('expand~ ('longrightarrow~ x A B))
+    ('Pi~ x A-expanded B-expanded)) <--
+    ('macro~ !('expand~ A) A-expanded)
+    ('macro~ !('expand~ B) B-expanded)]
+('macro~ ?('expand~ (Proof a)) (t-app (Prf) a))
 
-[(check-proof (proof judegement rule-name (sub-proof3 sub-pf1 sub-pf2 sub-pf3)))
- -->
- (check-proof sub-pf1)
- (check-proof sub-pf2) 
- (check-proof sub-pf3)]
 
-; we can check whether a proof tree is valid using slog rule
-; base case, if premise for a proof empty then it is valid
-[(check-proof proof-obj)
- (= proof-obj
-    (proof judegement rule-name ('mt~)))
- ('Downarrow~ rule-name ('mt~) (conclusion judegement))
- -->
- (theorem proof-obj)]
+; nat = all a: Prop.all z: Prf a.all s: (Prf a -> Prf a) . a
+('macro~ ('expand~ ('nat~)) {'macro~ !('expand~ 
+    (all "n-a" (Prop)
+        (all "n-z" (Proof "n-a")
+            (all "n-s" ('longrightarrow~ "n-x" (Proof "n-a") (Proof "n-a"))
+                    (var "n-a")))))})
+; (print-nat
+;     (all "n-a" (Prop )
+;         (all "n-z" (t-app (Prf ) "n-a")
+;             (all "n-s" ('Pi~ "n-x" (t-app (Prf) "n-a") (t-app (Prf) "n-a"))
+;                 (var "n-a")))))
+; (print-nat {'macro~ ('expand~ ('nat~))})
+; zero = (λa:Prop.λz:(Prf a).λ s: (Prf a -> Prf a).z) : Prf nat
+('macro~ ('expand~ (zero)) {'macro~ !('expand~
+    ('lambda~ "z-a" (Prop)
+        ('lambda~ "z-z" (Proof "z-a")
+            ('lambda~ "z-s" ('longrightarrow~ "z-x" (Proof "z-a") (Proof "z-a"))
+                (var "z-z")))))})
+; zero : Prf nat
+(term-bind {'macro~ !('expand~ (zero))} (Proof ('nat~)))
 
-; inductive cases
-; if all premise in a applied rule hold(or we say has a theorem/fact attach to it) then
-; conclusion hold(is a theorem)
-[(check-proof proof-obj)
- (= proof-obj
-    (proof judegement rule-name
-        (sub-proof1 (proof pr1 rule-for-pr1 rest-proof-pr1))))
- ('Downarrow~ rule-name (premise1 pr1) (conclusion judegement))
- (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
- -->
- (theorem proof-obj)]
+; here we treat succ as a function
+; succ = λn:Prf nat.λa:Prop. λz:Prf a.
+;           λs:Prf a → Prf a.s(n a z s) : Prf nat → Prf nat
+('macro~ ('expand~ (succ)) {'macro~ !('expand~
+    ('lambda~ "s-n" (Proof ('nat~))
+        ('lambda~ "s-a" (Prop)
+            ('lambda~ "s-z" (Proof "s-a")
+                ('lambda~ "s-s" ('longrightarrow~ "s-x" (Proof "s-a") (Proof "s-a"))
+                    (app (var "s-s") (app (app (app (var "s-n") (var "s-a")) (var "s-z")) (var "s-s")))))))
+       )})
+('macro~ ('expand~ ?(Suc n)) {'macro~ !('expand~ (app (succ) n))})
+(term-bind {'macro~ !('expand~ (succ))} ('longrightarrow~ "s-xp" (Proof ('nat~)) (Proof ('nat~))))
 
-[(check-proof proof-obj)
- (= proof-obj
-    (proof judegement rule-name
-        (sub-proof2 (proof pr1 rule-for-pr1 rest-proof-pr1)
-                    (proof pr2 rule-for-pr2 rest-proof-pr2))))
- ('Downarrow~ rule-name (premise2 pr1 pr2) (conclusion judegement))
- (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
- (theorem (proof pr2 rule-for-pr2 rest-proof-pr2))
- -->
- (theorem proof-obj)]
+; (print-suc {'macro~ !('expand~ (Suc (zero)))})
 
-[(check-proof proof-obj)
- (= proof-obj
-    (proof judegement rule-name
-        (sub-proof3 (proof pr1 rule-for-pr1 rest-proof-pr1)
-                    (proof pr2 rule-for-pr2 rest-proof-pr2)
-                    (proof pr3 rule-for-pr3 rest-proof-pr3))))
- ('Downarrow~ rule-name (premise2 pr1 pr2 pr3) (conclusion judegement))
- (theorem (proof pr1 rule-for-pr1 rest-proof-pr1))
- (theorem (proof pr2 rule-for-pr2 rest-proof-pr2))
- (theorem (proof pr3 rule-for-pr3 rest-proof-pr3))
- -->
- (theorem proof-obj)]
+(LF-check ('mt~)
+    (term-bind {'macro~ !('expand~ (Suc (zero)))}
+       (Proof ('nat~))))
 
