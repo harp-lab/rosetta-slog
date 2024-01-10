@@ -1,0 +1,268 @@
+; these rules are used to verify DT type inference step
+
+; context
+('mt~)
+(ctx (term-bind "x" (type "T"))
+    (ctx (type-bind (type "X") ('star~))
+        ('mt~)))
+
+; ---------------------------------------------
+; typing rule helper functions
+
+; predicate if binding is in an context
+('in~ ?(ctx bind rest) bind)
+[('in~ res bind1) --> ('in~ ?(ctx bind res) bind1)]
+
+; NOTE subst here is not capture avoiding
+; substitution for term in kind
+(subst-kind ?(do-subst-kind x t ('star~)) ('star~))
+[(subst-kind
+    ?(do-subst-kind x t
+        ('Pi~ xk T K))
+    ('Pi~ xk T-substed K-substed)) <--
+    (subst-type !(do-subst-type x t T) T-substed)
+    (subst-kind !(do-subst-kind x t K) K-substed)]
+; substitution for term in type
+(subst-type ?(do-subst-type x t (type T-name)) (type T-name))
+[(subst-type
+    ?(do-subst-type x t
+        ('Pi~ T-arg T-Targ T-body))
+    ('Pi~ T-arg T-Targ-substed T-body-substed)) <--
+    (subst-type !(do-subst-type x t T-Targ) T-Targ-substed)
+    (subst-type !(do-subst-type x t T-body) T-body-substed)]
+[(subst-type
+    ?(do-subst-type x t
+        (t-app T-func t-arg))
+    (t-app T-func-substed t-arg-substed)) <--
+    (subst-type !(do-subst-type x t T-func) T-func-substed)
+    (subst-term !(do-subst-term x t t-arg) t-arg-substed)]
+; substitution for term in term
+(subst-term ?(do-subst-term x t (var x)) t)
+[(=/= x y) --> (subst-term ?(do-subst-term x t (var y)) (var y))]
+;
+[(subst-term ?(do-subst-term x t ('lambda~ arg T-arg body))
+    ('lambda~ arg T-arg-substed body-substed)) <--
+    (subst-term !(do-subst-term x t body) body-substed)
+    (subst-type !(do-subst-type x t T-arg) T-arg-substed)]
+[(subst-term ?(do-subst-term x t (app func arg))
+    (app func-substed arg-substed)) <--
+    (subst-term !(do-subst-term x t func) func-substed)
+    (subst-term !(do-subst-term x t arg) arg-substed)]
+
+; materialize & rename, make it reads better
+[('mapsto~ x t K K-substed) <-- (subst-kind (do-subst-kind x t K) K-substed)]
+[('mapsto~ x t T T-substed) <-- (subst-type (do-subst-type x t T) T-substed)]
+[('mapsto~ x t t t-substed) <-- (subst-term (do-subst-term x t t) t-substed)]
+
+; ---------------------------------------------
+; proof checking algorithm
+
+(wh-reducable ?(app ('lambda~ x T t1) t2))
+(wh-reducable ?(app (app _ _) t2))
+
+(wh-non-reducable ?(var x))
+(wh-non-reducable ?('lambda~ x T t1))
+(wh-non-reducable ?(all x T t))
+(wh-non-reducable ?(app (var x) t2))
+(wh-non-reducable ?(app (all x T t) t2))
+
+; weak head reduction
+; base case
+[('longrightarrow~-wh ?(wh-norm t) t) <-- (wh-non-reducable t)]
+; recursive case
+[('longrightarrow~-wh (wh-norm t1) t2)
+ (wh-non-reducable t2) -->
+    (whnf t1 t2)]
+[('longrightarrow~-wh ?(wh-norm (app t1 t2)) (app t1' t2)) <--
+    ('longrightarrow~-wh !(wh-norm t1) t1')]
+[(wh-norm (app ('lambda~ x T t1) t2)) --> (do-subst-term x t2 t1)]
+('longrightarrow~-wh ?(wh-norm (app ('lambda~ x T t1) t2)) {'mapsto~ x t2 t1})
+; transitive
+[('longrightarrow~-wh (wh-norm t1) t2)
+ ('longrightarrow~-wh (wh-norm t2) t3) -->
+    ('longrightarrow~-wh (wh-norm t1) t3)]
+
+; evaluate wh-normal form for every app
+(wh-norm ?(app ('lambda~ x T1 t1) t2))
+(wh-norm ?(app t1 t2))
+(wh-norm ?(all x T t))
+
+
+; algorthmic kind formation Γ ⥛ K
+; wfa-star
+('RightTeeVector~ ?(LF-check 'Gamma~ ('star~)))
+; wfa-pi
+[('RightTeeVector~ !(LF-check 'Gamma~ (type-bind T ('star~))))
+ ('RightTeeVector~ !(LF-check (ctx (term-bind x T) 'Gamma~) K))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('Pi~ x T K)))]
+
+; Algorithmic kinding Γ ⥛ T::K
+; ka-var
+[('in~ 'Gamma~ (type-bind T K) )
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ (type-bind T K)))]
+; ka-pi
+[('RightTeeVector~ !(LF-check 'Gamma~ (type-bind T1 ('star~))))
+ ('RightTeeVector~ !(LF-check (ctx (term-bind x T1) 'Gamma~) (type-bind T2 ('star~))))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ (type-bind ('Pi~ x T1 T2) ('star~))))]
+
+; ka-app
+[('RightTeeVector~ (LF-check 'Gamma~ (type-bind S ('Pi~ x T1 K))))
+ ('RightTeeVector~ (LF-check 'Gamma~ (term-bind t T2)))
+ ('RightTeeVector~ (LF-check 'Gamma~ ('equiv~ T1 T2)))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ (term-bind (t-app S t) {'mapsto~ x t K})))]
+[(LF-check 'Gamma~ (term-bind (t-app S t) {'mapsto~ x t K}))
+ ('equiv~ T1 T2)
+ (term-bind t T2)
+ ('Pi~ x T1 K)
+    -->
+    (LF-check 'Gamma~ (type-bind S ('Pi~ x T1 K)))
+    (LF-check 'Gamma~ (term-bind t T2))
+    (LF-check 'Gamma~ ('equiv~ T1 T2))]
+[(type-bind S ('Pi~ x T1 K)) (term-bind t T2)
+ ('equiv~ T1 T2)
+    -->
+    (do-subst-kind x t K)]
+
+; algorithmic typing Γ ⥛ t : T
+; ta-var
+[('in~ 'Gamma~ (term-bind x T) )
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ (term-bind (var x) T)))]
+
+; ta-abs
+[('RightTeeVector~ !(LF-check 'Gamma~ (type-bind S ('star~))))
+ ('RightTeeVector~ !(LF-check (ctx (term-bind x S) 'Gamma~) (term-bind t T)))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ (term-bind ('lambda~ x S t) ('Pi~ x S T))))]
+
+; ta-app
+[('RightTeeVector~ (LF-check 'Gamma~ (term-bind t1 ('Pi~ x S1 T))))
+ ('RightTeeVector~ (LF-check 'Gamma~ (term-bind t2 S2)))
+ ('RightTeeVector~ (LF-check 'Gamma~ ('equiv~ S1 S2)))
+    -->
+    ('RightTeeVector~ (LF-check 'Gamma~ (term-bind (app t1 t2) {'mapsto~ x t2 T})))]
+[(LF-check 'Gamma~ (term-bind (app t1 t2) T-unsubsted))
+ (term-bind t1 ('Pi~ x S1 T))
+ (term-bind t2 S2)
+    -->
+    (LF-check 'Gamma~ ('equiv~ S1 S2))
+    (LF-check 'Gamma~ (term-bind t1 ('Pi~ x S1 T)))
+    (LF-check 'Gamma~ (term-bind t2 S2))]
+[(LF-check 'Gamma~ (term-bind (app t1 t2) T-unsubsted))
+ (term-bind t1 ('Pi~ x S1 T)) (term-bind t2 S2)
+    -->
+    (do-subst-type x t2 T)]
+
+; qka-star
+('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ ('star~) ('star~))))
+
+; qka-pi
+[('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ T1 T2)))
+ ('RightTeeVector~ !(LF-check (ctx (term-bind x T1) 'Gamma~) ('equiv~ K1 K2)))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ ('Pi~ x T1 K1)
+                        ('Pi~ x T2 K2))))]
+
+; algorithmic type equivalence Γ ⥛ S ≡ T :: K
+; qta-var
+('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ X X)))
+
+; qta-pi
+[('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ S1 T1)))
+ ('RightTeeVector~ !(LF-check (ctx (term-bind x T1) 'Gamma~) ('equiv~ S2 T2)))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ ('Pi~ x S1 S2)
+                        ('Pi~ x T1 T2))))]
+
+; qta-app
+[('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ S1 S2)))
+ ('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ t1 t2)))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ (t-app S1 t1) (t-app S2 t2))))]
+
+; algorithmic term equivalence Γ ⥛ t1 ≡ t2 : T
+; qa-wh
+[('equiv~ s t) --> (wh-norm s) (wh-norm t)]
+[('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~-wh {'longrightarrow~-wh (wh-norm s)}
+                        {'longrightarrow~-wh (wh-norm t)})))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ s t)))]
+
+; qa-var
+('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~-wh x x)))
+
+; qa-abs
+[('RightTeeVector~ !(LF-check (ctx (term-bind x S) 'Gamma~) ('equiv~ t1 t2)))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~-wh ('lambda~ x S t1)
+                           ('lambda~ x S t2))))]
+
+; qa-app
+[('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~-wh s1 s2)))
+ ('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~-wh t1 t2)))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~-wh (app s1 t1) (app s2 t2))))]
+
+; qa-nabs1
+[('RightTeeVector~ !(LF-check (ctx (term-bind x S) 'Gamma~) ('equiv~ (app s (var x)) t)))
+ (term-not-'lambda~ s)
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~-wh s ('lambda~ x S t))))]
+; qa-nabs2
+[('RightTeeVector~ !(LF-check (ctx (term-bind x S) 'Gamma~) ('equiv~ s (app t x))))
+ (term-not-'lambda~ t)
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~-wh ('lambda~ x S s) t)))]
+
+; ka-prop
+('RightTeeVector~ ?(LF-check 'Gamma~ (type-bind (Prop) ('star~))))
+
+; ka-prf
+[('RightTeeVector~ !(LF-check 'Gamma~ (term-bind t (Prop))))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ (type-bind (t-app (Prf) t)
+                        ('star~))))]
+
+; qt-all-e
+[('RightTeeVector~ !(LF-check 'Gamma~ (type-bind T ('star~))))
+ ('RightTeeVector~ !(LF-check (ctx (term-bind x T) 'Gamma~) (term-bind t (Prop))))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ (term-bind (all x T t) (Prop))))]
+
+; qka-pi-prf
+[('longrightarrow~-wh !(wh-norm t) (all x T1 t2))
+ ('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ S1 T1)))
+ ('RightTeeVector~ !(LF-check (ctx (term-bind x S1) 'Gamma~) ('equiv~ S2 (t-app (Prf) t2))))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ ('Pi~ x S1 S2)
+                        (t-app (Prf) t))))]
+
+; qka-prf-pi
+[('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ ('Pi~ x S1 S2)
+                     (t-app (Prf) t))))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ (t-app (Prf) t)
+                        ('Pi~ x S1 S2))))]
+
+; qka-prf
+[('RightTeeVector~ !(LF-check 'Gamma~ ('equiv~ s t)))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~ (t-app (Prf) s)
+                        (t-app (Prf) t))))]
+
+; qa-all-e
+[('RightTeeVector~ (LF-check 'Gamma~ ('equiv~ S1 T1)))
+ ('RightTeeVector~ (LF-check (ctx (term-bind x S1) 'Gamma~) ('equiv~ s t)))
+    -->
+    ('RightTeeVector~ ?(LF-check 'Gamma~ ('equiv~-wh (all x S1 s)
+                           (all x T1 t))))]
+[(LF-check 'Gamma~ ('equiv~-wh (all x S1 s)
+                   (all x T1 t)))
+ ('equiv~ S1 T1)
+ -->
+    (LF-check (ctx (term-bind x S1) 'Gamma~) ('equiv~ s t))
+    (LF-check (ctx (term-bind x S1) 'Gamma~) ('equiv~ s t))]
