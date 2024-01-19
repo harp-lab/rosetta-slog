@@ -1,0 +1,506 @@
+; --------------------------------------------
+; hilbert style proof system 
+; --------------------------------------------
+; semantic for hilbert style proof system
+; --------------------------------------------
+; example for valid term
+
+(Prop-1 "p" (var "x"))
+('longrightarrow~ (Prop-1 "p" (var "x")) (Prop-1 "p" (var "x")))
+('not~ (Prop-1 "p" (var "x")))
+('land~ (Prop-1 "p" (var "x")) (Prop-1 "p" (var "x")))
+('lor~ (Prop-1 "p" (var "x")) (Prop-1 "p" (var "x")))
+('forall~ "x" (Prop-1 "p" (var "x")))
+('exists~ "x" (Prop-1 "p" (var "x")))
+; The atomic (or prime) formulas of L are expressions
+; such as P,Q(x),R(x,y,x) where P,Q(.),R(...) are 0-ary,
+; 1-ary and 3-ary predicate letters respectively;
+(Prop-huh ?(Prop-0 _))
+(Prop-huh ?(Prop-1 _ _))
+(Prop-huh ?(Prop-2 _ _ _))
+(Prop-huh ?(Prop-3 _ _ _ _))
+(arg-in-atomic ?(Prop-1 _ x) x)
+(arg-in-atomic ?(Prop-2 _ x y) x)
+(arg-in-atomic ?(Prop-2 _ x y) y)
+(arg-in-atomic ?(Prop-3 _ x y z) x)
+(arg-in-atomic ?(Prop-3 _ x y z) y)
+(arg-in-atomic ?(Prop-3 _ x y z) z)
+
+(term-huh ?(var x))
+[(term-huh p) <-- (Prop-huh p)]
+(term-huh ?('longrightarrow~ _ _))
+(term-huh ?('not~ _))
+(term-huh ?('land~ _ _))
+(term-huh ?('lor~ _ _))
+(term-huh ?('forall~ _ _))
+(term-huh ?('exists~ _ _))
+
+; free variable checking
+(free-var-huh ?(check-fv x (var x)) ('top~))
+[(=/= x y) --> (free-var-huh ?(check-fv x (var y)) ('bot~))]
+[(Prop-huh p) (arg-in-atomic p arg)
+ (free-var-huh !(check-fv x arg) arg-res) -->
+    (free-var-huh ?(check-fv x pp) arg-res)]
+[(free-var-huh !(check-fv x l) l-res)
+ (free-var-huh !(check-fv x r) r-res) -->
+    (free-var-huh ?(check-fv x ('longrightarrow~ l r)) {AND l-res r-res})]
+[(free-var-huh !(check-fv x body) body-res) -->
+    (free-var-huh ?(check-fv x ('not~ body)) body-res)]
+[(free-var-huh !(check-fv x l) l-res)
+ (free-var-huh !(check-fv x r) r-res) -->
+    (free-var-huh ?(check-fv x ('land~ l r)) {AND l-res r-res})]
+[(free-var-huh !(check-fv x l) l-res)
+ (free-var-huh !(check-fv x r) r-res) -->
+    (free-var-huh ?(check-fv x ('lor~ l r)) {AND l-res r-res})]
+[(free-var-huh !(check-fv x body) body-res)
+ (=/= x y) -->
+    (free-var-huh ?(check-fv x ('forall~ y body)) body-res)]
+(free-var-huh ?(check-fv x ('forall~ x body)) ('bot~))
+[(free-var-huh !(check-fv x body) body-res)
+ (=/= x y) -->
+    (free-var-huh ?(check-fv x ('exists~ y body)) body-res)]
+(free-var-huh ?(check-fv x ('exists~ x body)) ('bot~))
+
+; check if a var in a prop
+(var-in-prop ?(var x) x)
+[(var-in-prop p v) <-- 
+    (Prop-huh p) (arg-in-atomic p arg)
+    (var-in-prop arg v)]
+[(var-in-prop ?('longrightarrow~ l r) v) <-- (var-in-prop l v)]
+[(var-in-prop ?('longrightarrow~ l r) v) <-- (var-in-prop r v)]
+[(var-in-prop ?('not~ body) v) <-- (var-in-prop body v)]
+[(var-in-prop ?('land~ l r) v) <-- (var-in-prop l v)]
+[(var-in-prop ?('land~ l r) v) <-- (var-in-prop r v)]
+[(var-in-prop ?('lor~ l r) v) <-- (var-in-prop l v)]
+[(var-in-prop ?('lor~ l r) v) <-- (var-in-prop r v)]
+[(var-in-prop ?('forall~ y body) v) <-- (var-in-prop body v)]
+(var-in-prop ?('forall~ y body) y)
+[(var-in-prop ?('exists~ y body) v) <-- (var-in-prop body v)]
+(var-in-prop ?('exists~ y body) y)
+
+; subst
+('mapsto~ ?(subst x (var x) t) t)
+[(=/= x y) --> ('mapsto~ ?(subst x (var y) t) (var y))]
+('mapsto~ ?(subst x (Prop-0 n) t) (Prop-0 n))
+[('mapsto~ ?(subst x (Prop-1 pname arg1) t) (Prop-1 pname arg1-substed)) <--
+    ('mapsto~ !(subst x arg1 t) arg1-substed)]
+[('mapsto~ ?(subst x (Prop-2 pname arg1 arg2) t)
+    (Prop-2 pname arg1-substed arg2-substed)) <--
+    ('mapsto~ !(subst x arg1 t) arg1-substed)
+    ('mapsto~ !(subst x arg2 t) arg2-substed)]
+[('mapsto~ ?(subst x (Prop-3 pname arg1 arg2 arg3) t)
+    (Prop-3 pname arg1-substed arg2-substed arg3-substed)) <--
+    ('mapsto~ !(subst x arg1 t) arg1-substed)
+    ('mapsto~ !(subst x arg2 t) arg2-substed)
+    ('mapsto~ !(subst x arg3 t) arg3-substed)]
+[('mapsto~ ?(subst x ('not~ body) t) ('not~ body-substed)) <--
+    ('mapsto~ !(subst x body t) body-substed)]
+[('mapsto~ ?(subst x ('land~ l r) t) ('land~ l-substed r-substed)) <--
+    ('mapsto~ !(subst x l t) l-substed)
+    ('mapsto~ !(subst x r t) r-substed)]
+[('mapsto~ ?(subst x ('lor~ l r) t) ('lor~ l-substed r-substed)) <--
+    ('mapsto~ !(subst x l t) l-substed)
+    ('mapsto~ !(subst x r t) r-substed)]
+[('mapsto~ ?(subst x ('forall~ y body) t) ('forall~ y body-substed)) <--
+    (=/= x y)
+    ('mapsto~ !(subst x body t) body-substed)]
+[('mapsto~ ?(subst x ('exists~ y body) t) ('exists~ y body-substed)) <--
+    (=/= x y)
+    ('mapsto~ !(subst x body t) body-substed)]
+
+; assume our free var finding is correct
+; (axiom "fv" ?(free-var-huh _ _))
+; (axiom "vip" ?(var-in-prop _ _))
+
+; proof tree for 
+
+; helper truthtable
+(AND ('top~) ('top~) ('top~))
+(AND ('top~) ('bot~) ('bot~))
+(AND ('bot~) ('top~) ('bot~))
+(AND ('bot~) ('bot~) ('bot~))
+(OR ('top~) ('top~) ('top~))
+(OR ('top~) ('bot~) ('top~))
+(OR ('bot~) ('top~) ('top~))
+(OR ('bot~) ('bot~) ('bot~))
+
+; --------------------------------------------
+; inference rules
+; --------------------------------------------
+; modus ponens
+('Downarrow~ "modus-ponens"
+    (premise2 ?('longrightarrow~ a b) a)
+    (conclusion b))
+
+; ∀ introduction
+[('Downarrow~ "forall-intro"
+    (premise1 ?('longrightarrow~ c a))
+    (conclusion ?('longrightarrow~ c ('forall~ x a)))) <--
+ (var-in-prop a x)
+ (free-var-huh !(check-fv x c) ('bot~))]
+
+; ∃ elimination
+[('Downarrow~ "exists-elim"
+    (premise1 ?('longrightarrow~ a c))
+    (conclusion ?('longrightarrow~ ('exists~ x a) c))) <--
+  (var-in-prop a x)
+  (free-var-huh !(check-fv x c) ('bot~))]
+
+; axiom
+(axiom "h-axiom1"
+    ?('longrightarrow~ A ('longrightarrow~ B A)))
+(axiom "h-axiom2"
+    ?('longrightarrow~ ('longrightarrow~ A B)
+         ('longrightarrow~ ('longrightarrow~ A ('longrightarrow~ B C))
+             ('longrightarrow~ A C))))
+(axiom "and-intro-axiom"
+    ?('longrightarrow~ A ('longrightarrow~ B ('land~ A B))))
+(axiom "h-axiom4"
+    ?('longrightarrow~ ('land~ A B) A))
+(axiom "h-axiom5"
+    ?('longrightarrow~ ('land~ A B) B))
+(axiom "h-axiom6"
+    ?('longrightarrow~ A ('lor~ A B)))
+(axiom "h-axiom7"
+    ?('longrightarrow~ B ('lor~ A B)))
+(axiom "h-axiom8"
+    ?('longrightarrow~ ('longrightarrow~ A C)
+         ('longrightarrow~ ('longrightarrow~ B C)
+             ('longrightarrow~ ('lor~ A B) C))))
+(axiom "h-axiom9"
+    ?('longrightarrow~ ('longrightarrow~ A B)
+         ('longrightarrow~ ('longrightarrow~ A ('not~ B)) ('not~ A))))
+(axiom "h-axiom10"
+    ?('longrightarrow~ ('not~ A) ('longrightarrow~ A B)))
+[(axiom "specify-axiom"
+    ?('longrightarrow~ ('forall~ x Ax) At)) <--
+    (var-in-prop Ax x)
+    ('mapsto~ (subst x Ax t) At)]
+[(axiom "h-axiom"
+    ?('longrightarrow~ At ('exists~ x Ax))) <--
+    (var-in-prop Ax x)
+    ('mapsto~ (subst x Ax t) At)]
+
+; we allow deduction here to make the proof tree more readable
+; all proposition is proven then it can be directly used to inference
+; other rules.
+
+; --------------------------------------------
+;  natural number theroy
+;  heyting arithmetic
+; --------------------------------------------
+
+; new term in heyting algebra
+(term-huh ?(zero))
+(term-huh ?(Suc _))
+
+; 'equiv~ is reflexive
+(axiom "equiv-refl" ?('forall~ "x" ('equiv~ (var "x") (var "x"))))
+; 'equiv~ is symmetric
+(axiom "equiv-sym"
+    ?('forall~ "x" ('forall~ "y"
+        ('longrightarrow~ ('equiv~ (var "x") (var "y"))
+            ('equiv~ (var "y") (var "x"))))))
+; 'equiv~ is transitive
+(axiom "equiv-transitive"
+    ?('forall~ "x" ('forall~ "y" ('forall~ "z"
+        ('longrightarrow~ ('land~ ('equiv~ (var "x") (var "y"))
+               ('equiv~ (var "y") (var "z")))   
+            ('equiv~ (var "x") (var "z")))))))
+
+; the axiom characterizing 0 as the least natural number:
+(axiom "zero-axiom"
+    ?('forall~ "x" ('not~ ('equiv~ (var "x") (zero)))))
+; the axiom characterizing S as a one-to-one function
+(axiom "Suc-axiom"
+    ?('forall~ "x" ('forall~ "y"
+        ('longrightarrow~ ('equiv~ (Suc (var "x")) (Suc (var "y")))
+            ('equiv~ (var "x") (var "y"))))))
+; extensional equality axiom for S
+(axiom "Suc-ext-axiom"
+    ?('forall~ "x" ('forall~ "y"
+        ('longrightarrow~ ('equiv~ (var "x") (var "y"))
+            ('equiv~ (Suc (var "x")) (Suc (var "y")))))))
+; the primitive recursive defining equations for each function constant, in particular for addition
+(axiom "add-0-axiom"
+    ?('forall~ "x" ('forall~ "y"
+        ('equiv~ (add (var "x") (zero))
+           (var "x")))))
+(axiom "add-Suc-axiom"
+    ?('forall~ "x" ('forall~ "y"
+        ('equiv~ (add (var "x") (Suc (var "y")))
+           (Suc (add (var "x") (var "y")))))))
+; and multiplication
+(axiom "mul-0-axiom"
+    ?('forall~ "x" ('forall~ "y"
+        ('equiv~ (mul (var "x") (zero))
+           (zero)))))
+(axiom "mul-Suc-axiom"
+    ?('forall~ "x" ('forall~ "y"
+        ('equiv~ (mul (var "x") (Suc (var "y")))
+           (add (mul (var "x") (var "y")) (var "x"))))))
+; and the (universal closure of the) schema of mathematical induction, for arbitrary formulas A(x):
+(axiom "induction-axiom"
+    ?('longrightarrow~ ('land~ (Prop-1 A (zero)
+            ('forall~ "x" ('longrightarrow~ (Prop-1 A (var "x"))
+                (Prop-1 A (Suc (var "x")))))))
+         ('forall~ "x" (Prop-1 A (var "x")))))
+; x < y
+; [(less x y) <-- ('exists~ z ('equiv~ (+ (Suc z) x) y))]
+; predessor
+(axiom "pred-0-axiom" ?('equiv~ (pred (zero)) (zero)))
+(axiom "pred-Suc-axiom" ?('forall~ "x" ('equiv~ (pred (Suc (var "x"))) (var "x"))))
+; cutoff subtraction
+(axiom "monus-0-axiom"
+    ?('forall~ "x" ('equiv~ ('monus~ (var "x") (zero)) (var "x"))))
+(axiom "monus-Suc-axiom"
+    ?('forall~ "x" ('forall~ "y"
+        ('equiv~ ('monus~ (var "x") (Suc (var "y")))
+           ('monus~ (pred (var "x")) (var "y"))))))
+
+('macro~ ?('expand~ (less x y)) ('equiv~ ('monus~ (Suc x) y) y))
+
+; subst term for all heyting algebra term
+('mapsto~ ?(subst x (zero) t) (zero))
+[('mapsto~ ?(subst x (Suc n) t) n-subst) <-- ('mapsto~ !(subst x n t) n-subst)]
+[('mapsto~ ?(subst x (add n m) t) (add n-subst m-subst)) <--
+    ('mapsto~ !(subst x n t) n-subst)
+    ('mapsto~ !(subst x m t) m-subst)]
+[('mapsto~ ?(subst x (mul n m) t) (mul n-subst m-subst)) <--
+    ('mapsto~ !(subst x n t) n-subst)
+    ('mapsto~ !(subst x m t) m-subst)]
+[('mapsto~ ?(subst x (pred n) t) (pred n-subst)) <-- ('mapsto~ !(subst x n t) n-subst)]
+[('mapsto~ ?(subst x ('monus~ n m) t) ('monus~ n-subst m-subst)) <--
+    ('mapsto~ !(subst x n t) n-subst)
+    ('mapsto~ !(subst x m t) m-subst)]
+[('mapsto~ ?(subst x ('equiv~ n m) t) ('equiv~ n-subst m-subst)) <--
+    ('mapsto~ !(subst x n t) n-subst)
+    ('mapsto~ !(subst x m t) m-subst)]
+
+; --------------------------------------------
+
+; commutative law for addition
+(goal "cummutative-law"
+    ('forall~ "x" ('forall~ "y"
+        ('equiv~ (add (var "x") (var "y"))
+           (add (var "y") (var "x"))))))
+
+; lemma 'forall~ x. x + 0 = x
+(goal "lemma-0-add-x"
+    ('forall~ "x" ('equiv~ (add (zero) (var "x"))
+        (var "x"))))
+[(goal "lemma-0-add-x-0" g-zero) (goal "lemma-0-add-x-Suc" g-ind) <--
+    (proof-state !(use-tactic "induction" {goal "lemma-0-add-x"} "x")
+        (sub-goal2 g-zero g-ind))]
+; base case
+(specify-thm "0+0=0" (zero) "add-0-axiom")
+(print ?(theorem "0+0=0"))
+
+; induction on addition
+; [(goal "cl-x-zero" g-zero) (goal "cl-x-suc" g-ind) <--
+;     (proof-state !(use-tactic "induction" {goal "cummutative-law"} "x")
+;         (sub-goal2 g-zero g-ind))]
+; ; base case
+; ; (goal "cl-x-zero" ('forall~ "y" ('equiv~ (add (zero ) (var "y")) (add (var "y") (zero )))))
+; [(goal "cl-0-0" g-zero) (goal "cl-0-1" g-ind) <--
+;     (proof-state !(use-tactic "induction" {goal "cl-x-zero"} "y")
+;         (sub-goal2 g-zero g-ind))]
+; ; (goal "cl-0-0" ('equiv~ (add (zero ) (zero )) (add (zero ) (zero ))))
+; (specify-thm "0+0=y" (add (zero) (zero)) "equiv-refl")
+; (specify-thm "0+0=0+0" (add (zero) (zero)) "0+0=y")
+; ; "cl-0-0" is proved
+; ; (goal "cl-0-1" ('forall~ "y" ('longrightarrow~ ('equiv~ (add (zero ) (var "y")) (add (var "y") (zero )))
+; ;                           ('equiv~ (add (zero ) (Suc "y")) (add (Suc "y") (zero ))))))
+
+
+; to prove ∀x ∀y (x<y ∨ x=y ∨ y<x)
+; (goal "comparative-law"
+;     ('forall~ "x" ('forall~ "y"
+;         ('lor~ {'macro~ !('expand~ (less (var "x") (var "y")))}
+;            ('lor~ ('equiv~ (var "x") (var "y"))
+;               {'macro~ !('expand~ (less (var "y") (var "x")))})))))
+
+
+; ---------------------------------------------
+; goal oriented proof search
+; ---------------------------------------------
+; relation (solve-state s pr)
+; means a proof state "s" can be solved by proof "pr", there is proof attached to it's sub goals
+
+; induction tactic
+; induction will generate 2 subgoal 1 for base case and 1 for inductive case
+(proof-state
+    ?(use-tactic "induction" ('forall~ x p) x)
+    (sub-goal2
+        ; zero case
+        {'mapsto~ !(subst x p (zero))}
+        ; inductive case
+        ('forall~ x ('longrightarrow~ p {'mapsto~ !(subst x p (Suc x))}))))
+[(use-tactic "induction" goal x) -->
+    (subst x goal (Suc x)) (subst x goal (zero))]
+(solve-state
+    ?(proof-state (use-tactic "induction" goal x)
+        (sub-goal2 g-zero g-ind))
+    (proof goal "modus-ponens"
+        (sub-proof2
+            (proof ('longrightarrow~ ('land~ {'mapsto~ (subst x goal (zero))}
+                          ('forall~ x ('longrightarrow~ p {'mapsto~ (subst x goal (Suc x))})))
+                       goal)
+                   "induction-axiom" ('mt~)))    ; induction-axiom
+            (proof ('land~ {'mapsto~ (subst x goal (zero))}
+                      ('forall~ x ('longrightarrow~ p {'mapsto~ (subst x goal (Suc x))})))
+                   "modus-ponens"
+                   (sub-proof2
+                        (proof ('longrightarrow~ ('forall~ x ('longrightarrow~ p {'mapsto~ (subst x goal (Suc x))}))
+                                    ('land~ {'mapsto~ (subst x goal (zero))}
+                                            ('forall~ x ('longrightarrow~ p {'mapsto~ (subst x goal (Suc x))}))))
+                               "modus-ponens"
+                               (sub-proof2
+                                    (proof ('longrightarrow~  {'mapsto~ (subst x goal (zero))}
+                                                ('longrightarrow~ ('forall~ x ('longrightarrow~ p {'mapsto~ (subst x goal (Suc x))}))
+                                                    ('land~ {'mapsto~ (subst x goal (zero))}
+                                                            ('forall~ x ('longrightarrow~ p {'mapsto~ (subst x goal (Suc x))})))))
+                                           "and-intro-axiom" ('mt~))     ; and-intro axiom
+                                    ?(proof {'mapsto~ (subst x goal (zero))} _ _))
+                        ?(proof ('forall~ x ('longrightarrow~ p {'mapsto~ (subst x goal (Suc x))})) _ _))))))
+
+
+; stupid apply tactic, apply don't have argument, just a thm name
+[(theorem-proof thm-name ('longrightarrow~ pm goal)) -->
+    (proof-state
+        ?(use-tactic "apply" pm thm-name)
+        (sub-goal1 pm))]
+(solve-state
+    ?(proof-state (use-tactic "apply" pm thm-name) (sub-goal1 pm))
+    (proof "modus-ponens"
+        (sub-proof2
+            {theorem-proof (theorem thm-name)}
+            ?(proof pm _ _))))
+; there should be a smarter way... to apply theorem with arguments
+; can fit in bounded var in thm
+; 1. specify used thm with all bounded var name in goal
+; 2. use MP
+;  - 2.1 use forall intro
+;    - 2.1.1 use AND deduction axiom
+;  - 2.2 use MP
+;    - 2.2.1 use MP 
+;       - 2.2.1.1 use infer-and axiom
+;    - 2.2.2 use specified A
+; use MP, if forall pm can be proved then we can solve goal
+; complicated ....
+
+; exact tactic
+; exact tactic will solve the goal if the goal is a theorem
+; [(theorem-proof thm-name goal) -->
+;     (proof-state
+;         ?(use-tactic "exact" goal thm-name)
+;         (sub-goal1 goal))]
+
+; helper relation to specify a forall theorem
+[(specify-thm thm-name sx specified-name)
+ (= thm-g ('forall~ x t)) -->
+    (subst x thm-g sx)]
+[(specify-thm thm-name sx specified-name)
+ (= thm-g ('forall~ x t))
+ (theorem-proof (theorem thm-name) thm-g)
+ (= pfv (proof thm-g pr psg))
+ (verified pfv) -->
+    (prove-theorem specified-name
+        (proof {'mapsto~ (subst x thm-g sx)}
+            "modus-ponens"
+            (sub-proof2
+                (proof ('longrightarrow~ thm-g {'mapsto~ (subst x thm-g sx)})
+                    "specify-axiom" ('mt~))
+                pfv)))]
+
+; error checking
+; (valid-tactic "intro")
+(valid-tactic "induction")
+(valid-tactic "apply")
+(valid-tactic "exact")
+[(tactic-error ut) <--
+    (= ut (use-tactic t g v))
+    (~ proof-state ut _)]
+[(invalid-use-tactic t) <-- (use-tactic t _ _) (~ valid-tactic t)]
+[(unsolved-state sid) <-- (= sid (proof-state _ _)) (~ solve-state sid _)]
+
+
+; ---------------------------------------------
+; PREDEFINED RULES
+; ---------------------------------------------
+; Implemenation of intutionistic proof checking
+
+[('qed~ p) --> (check-proof p)]
+
+; popluating proof check request
+[(check-proof (proof judegement rule-name (sub-proof1 sub-pf1)))
+ -->
+ (check-proof sub-pf1)]
+
+[(check-proof (proof judegement rule-name (sub-proof2 sub-pf1 sub-pf2)))
+ -->
+ (check-proof sub-pf1)
+ (check-proof sub-pf2)]
+
+[(check-proof (proof judegement rule-name (sub-proof3 sub-pf1 sub-pf2 sub-pf3)))
+ -->
+ (check-proof sub-pf1)
+ (check-proof sub-pf2) 
+ (check-proof sub-pf3)]
+
+; we can check whether a proof tree is valid using slog rule
+; base case, if premise for a proof empty then it is valid
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name ('mt~)))
+ ('Downarrow~ rule-name ('mt~) (conclusion judegement))
+ -->
+ (verified proof-obj)]
+
+; inductive cases
+; if all premise in a applied rule hold(or we say has a verified/fact attach to it) then
+; conclusion hold(is verified)
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof1 (proof pr1 rule-for-pr1 rest-proof-pr1))))
+ ('Downarrow~ rule-name (premise1 pr1) (conclusion judegement))
+ (verified (proof pr1 rule-for-pr1 rest-proof-pr1))
+ -->
+ (verified proof-obj)]
+
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof2 (proof pr1 rule-for-pr1 rest-proof-pr1)
+                    (proof pr2 rule-for-pr2 rest-proof-pr2))))
+ ('Downarrow~ rule-name (premise2 pr1 pr2) (conclusion judegement))
+ (verified (proof pr1 rule-for-pr1 rest-proof-pr1))
+ (verified (proof pr2 rule-for-pr2 rest-proof-pr2))
+ -->
+ (verified proof-obj)]
+
+[(check-proof proof-obj)
+ (= proof-obj
+    (proof judegement rule-name
+        (sub-proof3 (proof pr1 rule-for-pr1 rest-proof-pr1)
+                    (proof pr2 rule-for-pr2 rest-proof-pr2)
+                    (proof pr3 rule-for-pr3 rest-proof-pr3))))
+ ('Downarrow~ rule-name (premise3 pr1 pr2 pr3) (conclusion judegement))
+ (verified (proof pr1 rule-for-pr1 rest-proof-pr1))
+ (verified (proof pr2 rule-for-pr2 rest-proof-pr2))
+ (verified (proof pr3 rule-for-pr3 rest-proof-pr3))
+ -->
+ (verified proof-obj)]
+
+[(axiom ax-name f) --> (verified (proof f "ax-name" ('mt~)))]
+;; non axiom verified
+[(proven-Prop f) <-- (verified (proof f ax-name ('mt~))) (~ axiom ax-name f)]
+
+[(prove-theorem thm-name pf) --> (check-proof pf)]
+[(theorem-proof (theorem thm-name) g) <--
+    (verified (proof g _ _))
+    (prove-theorem thm-name
+        (proof g _ _))]
+[(theorem-proof (theorem ax-name) f) <-- (axiom ax-name f)]
+[(non-axiom-theorem thm-name) <-- (theorem thm-name) (~ axiom thm-name _)]

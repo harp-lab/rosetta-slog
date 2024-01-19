@@ -1,0 +1,4 @@
+
+(foo "sss")
+
+[(== x (foo "sss")) --> (foobar x)]

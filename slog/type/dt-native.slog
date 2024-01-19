@@ -1,0 +1,161 @@
+
+; First lets describe a strict subset of Slog program
+
+; a slog function ℝ is relation has following properties
+; (ℝ must be capitalized)
+; 1. ℝ only has one IDB rule contributes to it
+; 2. ℝ has 2 arity 1 a
+; 3. the first argument is a 1 arity do-ℝ relation
+; 4. the first (which is also the only column) in do-ℝ
+;    is any slog function relation
+; 5. the second argument has following properties
+;    5.1 it can be a a fact nested with any slog function relation
+;        except for "unit" and "λ".
+;    5.2 it can be a fact of "*" 
+; 6. a call to a slog function ℝ is a fact of do-ℝ
+; 7. used the return value of a slog function ℝ is {ℝ (do-ℝ arg)}
+; all slog function must be a subfacts of Π-type
+; ℝ captures the Π type in dependently typed theory
+; do-ℝ captures the type application
+;
+
+; thoughts behind this:
+; once the Type is tabled in database, it means it has reached
+; weak head normal form. because all type application is resolved
+; during the process of datalog population.
+
+; Rules of lambda
+; λ is a special relation, 
+; 1. it is a 2 arity relation
+; 2. the first column is a 1 arity do-λ relation
+; 3. in column2 and the first column of do-λ are λ-term, it can be:
+;    3.1 a fact of "unit"
+;    3.2 a fact of "var"
+;    3.3 a fact of "λ"
+;    3.4 a fact of "app", which means function application
+; Rules of app
+; app is a special relation, has 2 arity both of them are λ term
+; Rules of var
+; var is a special relation, has 1 arity, which is a string
+
+
+; a relation will be called a "expression" if it has following properties
+; 1. it is "var" relation
+;   1.1 a "var" relation has 1 arity and it is a string
+; 2. it is "λ" relation
+;   2.1 a "λ" relation has 2 arity
+;   2.2 the first argument is string
+;   2.3 the second argument is a facts of "expression" 
+; 3. it be 0 arity relation facts (unit)
+; 4. it is a "Pi" relation
+
+;term
+(term? ?(var x))
+[(term? ?('lambda~ _ T body)) <-- (type? T) (term? body)]
+; term need to be in weak head normal form
+[(term? ?(app (var x) t)) <-- (term? t)]
+[(term? ?('forall~ x T t)) <-- (type? T) (term? t)]
+
+; type
+(type? (Prop))
+(type? ?(t-var X))
+[(type? ?('Pi~ _ T1 T2)) <-- (type? T1) (type? T2)]
+[(type? (t-app T t)) <-- (type? T) (term? t)]
+
+; kind
+(kind? ('star~))
+[(kind? ?('Pi~ _ T K)) <-- (kind? K) (type? T)]
+
+(kind "*" ('star~))
+(type "Proof" (Proof))
+
+; context
+(context? ('mt~))
+[(context? ?(ctx (term-bind _ T) 'Gamma~)) <-- (type? T) (context? 'Gamma~)]
+
+; judegement
+; under context 'Gamma~ term t has type T
+(judgement? ?(has-type 'Gamma~ t T))
+; under context 'Gamma~ term t has kind K
+(judgement? ?(has-kind 'Gamma~ T K))
+; under context 'Gamma~ term T1 and T2 are the same type
+(judgement? ?(same-type 'Gamma~ T1 T2))
+
+; assume everything is alphatized, we can the defunctionalize all lambda app
+(defunctioned-lambda-application?
+    ?(apply (do-apply func-name arg ) 'beta~-reduced))
+
+(apply 
+    ?(do-apply "" x)
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+; ---------------------------------------------
+; typing rule helper functions
+
+; predicate if binding is in an context
+('in~ ?(ctx bind rest) bind)
+[('in~ res bind1) --> ('in~ ?(ctx bind res) bind1)]
+
+; NOTE subst here is not capture avoiding
+; substitution for term in kind
+(subst-kind ?(do-subst-kind x t ('star~)) ('star~))
+[(subst-kind
+    ?(do-subst-kind x t
+        ('Pi~ xk T K))
+    ('Pi~ xk T-substed K-substed)) <--
+    (subst-type !(do-subst-type x t T) T-substed)
+    (subst-kind !(do-subst-kind x t K) K-substed)]
+; substitution for term in type
+(subst-type ?(do-subst-type x t (type T-name)) (type T-name))
+[(subst-type
+    ?(do-subst-type x t
+        ('Pi~ T-arg T-Targ T-body))
+    ('Pi~ T-arg T-Targ-substed T-body-substed)) <--
+    (subst-type !(do-subst-type x t T-Targ) T-Targ-substed)
+    (subst-type !(do-subst-type x t T-body) T-body-substed)]
+[(subst-type
+    ?(do-subst-type x t
+        (t-app T-func t-arg))
+    (t-app T-func-substed t-arg-substed)) <--
+    (subst-type !(do-subst-type x t T-func) T-func-substed)
+    (subst-term !(do-subst-term x t t-arg) t-arg-substed)]
+; substitution for term in term
+(subst-term ?(do-subst-term x t (var x)) t)
+[(=/= x y) --> (subst-term ?(do-subst-term x t (var y)) (var y))]
+;
+[(subst-term ?(do-subst-term x t ('lambda~ arg T-arg body))
+    ('lambda~ arg T-arg-substed body-substed)) <--
+    (subst-term !(do-subst-term x t body) body-substed)
+    (subst-type !(do-subst-type x t T-arg) T-arg-substed)]
+[(subst-term ?(do-subst-term x t (app func arg))
+    (app func-substed arg-substed)) <--
+    (subst-term !(do-subst-term x t func) func-substed)
+    (subst-term !(do-subst-term x t arg) arg-substed)]

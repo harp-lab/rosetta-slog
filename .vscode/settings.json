@@ -37,15 +37,23 @@
                 {"ugly": "'bot~", "pretty": "⊥"},
                 {"ugly": "'beta~", "pretty": "β"},
                 {"ugly": "'RightTeeVector~", "pretty": "⥛"},
+                {"ugly": "term-in-ctx", "pretty": "⥛"},
+                {"ugly": "'monus~", "pretty": "∸"},
                 {"ugly": "'plus~", "pretty": "+"},
+                // {"ugly": "'mul~", "pretty": "×"},
+                {"ugly": "Suc", "pretty": "𝕊"},
                 {"ugly": "'typ~", "pretty": "类型"},
                 {"ugly": "'macro~", "pretty": "⇻"},
                 {"ugly": "'expand~", "pretty": "§"},
                 {"ugly": "'try-type~", "pretty": "⤑"},
                 {"ugly": "'try-kind~", "pretty": "⇢"},
+                {"ugly": "'forall~", "pretty": "∀"},
+                {"ugly": "'exists~", "pretty": "∃"},
+                {"ugly": "'lor~", "pretty": "∨"},
+                {"ugly": "'land~", "pretty": "∧"},
+                {"ugly": "'not~", "pretty": "¬"},
                 {"ugly": "(Prop)", "pretty": "ℙ"},
                 {"ugly": "(Prop )", "pretty": "ℙ"},
-                
             ]
         }
     ]
