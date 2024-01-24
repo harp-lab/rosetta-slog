@@ -235,17 +235,6 @@
  (checked !(term-in-ctx-eq (ctx (term-bind x T1) 'Gamma~) ('equiv~ K1 K2)))
     -->
     (checked ?(term-in-ctx-eq 'Gamma~ ('equiv~ ('Pi~ x T1 K1) ('Pi~ x T2 K2))))]
-; genrate eq
-[(checked (term-in-ctx-eq 'Gamma~ ('equiv~ T1 T2)))
- (checked (term-in-ctx-eq (ctx (term-bind x T1) 'Gamma~) ('equiv~ K1 K2)))
- (term-in-ctx 'Gamma~ ('Pi~ x T1 K1))
-    -->
-    (checked (term-in-ctx-eq 'Gamma~ ('equiv~ ('Pi~ x T1 K1) ('Pi~ x T2 K2))))]
-[(checked (term-in-ctx-eq 'Gamma~ ('equiv~ T1 T2)))
- (checked (term-in-ctx-eq (ctx (term-bind x T1) 'Gamma~) ('equiv~ K1 K2)))
- (term-in-ctx 'Gamma~ ('Pi~ x T2 K2))
-    -->
-    (checked (term-in-ctx-eq 'Gamma~ ('equiv~ ('Pi~ x T1 K1) ('Pi~ x T2 K2))))]
 
 ; algorithmic type equivalence Γ ⥛ S ≡ T :: K
 ; qta-var
@@ -259,14 +248,6 @@
  (checked !(term-in-ctx-eq (ctx (term-bind x T1) 'Gamma~) ('equiv~ S2 T2))) -->
     ; TODO: α equivalence?
     (checked ?(term-in-ctx-eq 'Gamma~ ('equiv~ ('Pi~ x S1 S2) ('Pi~ _ T1 T2))))]
-[(checked (term-in-ctx-eq 'Gamma~ ('equiv~ S1 T1)))
- (checked (term-in-ctx-eq (ctx (term-bind x T1) 'Gamma~) ('equiv~ S2 T2)))
- (term-in-ctx 'Gamma~ ('Pi~ x S1 S2)) -->
-    (checked (term-in-ctx-eq 'Gamma~ ('equiv~ ('Pi~ x S1 S2) ('Pi~ x T1 T2))))]
-[(checked (term-in-ctx-eq 'Gamma~ ('equiv~ S1 T1)))
- (checked (term-in-ctx-eq (ctx (term-bind x T1) 'Gamma~) ('equiv~ S2 T2)))
- (term-in-ctx 'Gamma~ ('Pi~ x S1 S2)) -->
-    (checked (term-in-ctx-eq 'Gamma~ ('equiv~ ('Pi~ x S1 S2) ('Pi~ x T1 T2))))]
 ; qta-app
 [(checked !(term-in-ctx-eq 'Gamma~ ('equiv~ S1 S2)))
  (checked !(term-in-ctx-eq 'Gamma~ ('equiv~ t1 t2))) -->

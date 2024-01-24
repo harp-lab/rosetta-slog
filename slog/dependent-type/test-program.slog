@@ -1,0 +1,35 @@
+<< (include "./coc.slog") >>
+; a test program
+
+; in CoC, adt K is a expression (a forall Prop) rather than a type
+; but `Proof K` is a type
+; ℕ : expr
+;
+(Type "nat" (Prop))
+(Expr "nat"
+    ('forall~ (var "a") (Prop)
+        ('forall~ (var "z") (Proof (ref "a"))
+        ('forall~ (var "s") ('Pi~ (var "'rightarrow~") (Proof (ref "a")) (Proof (ref "a")))
+    (ref "a")))))
+; abbreviate
+('nat~ (Proof {Expr "nat"}))
+(Type "zero" {'nat~})
+(Expr "zero"
+    ('lambda~ (var "a") (Prop)
+        ('lambda~ (var "z") (Proof (ref "a"))
+        ('lambda~ (var "s") ('Pi~ (var "'rightarrow~") (Proof (ref "a")) (Proof (ref "a")))
+    (ref "z")))))
+; (Type "succ" ('Pi~ (var "'rightarrow~") {'nat~} {'nat~}))
+; (Expr "succ"
+;     ('lambda~ (var "n") (Proof {Expr "nat"})
+;     ('lambda~ (var "a") (Prop)
+;         ('lambda~ (var "z") (Proof (ref "a"))
+;         ('lambda~ (var "s") ('Pi~ (var "'rightarrow~") (Proof (ref "a")) (Proof (ref "a")))
+;     (app (ref "s")
+;          (app (app (app (ref "n") (ref "a"))
+;                    (ref "z"))
+;               (ref "s"))))))))
+
+; refined debug info
+[(print "debug-zero-type" T) <-- (has-type _ {Expr "zero"} T)]
+[(print "the-same-nat" T) <-- (the-same-type _ {'nat~} T)]

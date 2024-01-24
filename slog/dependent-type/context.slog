@@ -1,0 +1,66 @@
+
+; --------------------------------------------------------------
+('in~ ?(ctx bind rest) bind)
+; TODO: a var is bind to a type also means it also bind of all type equal to it
+[('in~ res bind1) --> ('in~ ?(ctx bind res) bind1)]
+
+; context order is defined by transitive closure on context
+(ctx-'sqsubseteq~ res ?(ctx b res))
+[(ctx-'sqsubseteq~ c a) <-- (= mid (ctx bind c)) (ctx-'sqsubseteq~ mid a)]
+
+; --------------------------------------------------------------
+; start from everything in global define space
+
+; define context
+(coc-ctx? ?('mt~))
+[(coc-ctx? ?(ctx bind rest)) <--
+    (coc-ctx? rest)
+    (coc-bind? bind)]
+[(error "invalid-ctx" 'Gamma~) <-- (= 'Gamma~ (ctx _ _)) (~ coc-ctx? 'Gamma~)]
+; define binding
+[(coc-bind? ?(term-bind x T)) <--
+    (var x)
+    (coc-type? T)]
+[(coc-bind? ?(type-bind X K)) <--
+    (t-var X)
+    (coc-kind? K)]
+[(error "invalid-bind" b) <-- (= b (term-bind _ _)) (~ coc-bind? b)]
+[(error "invalid-bind" b) <-- (= b (type-bind _ _)) (~ coc-bind? b)]
+
+; term-in-ctx 2 arities
+; `t` is a expression in context `'Gamma~`
+[(coc-term-in-ctx? ?(term-in-ctx 'Gamma~ t)) <--
+    (coc-expr? t)
+    (coc-ctx? 'Gamma~)]
+[(error "invalid-term-in-ctx" t) <-- (term-in-ctx 'Gamma~ t) (~ coc-term-in-ctx? (term-in-ctx 'Gamma~ t))]
+
+; t-var x
+[(term-in-ctx 'Gamma~ (t-app T t)) --> (term-in-ctx 'Gamma~ T) (term-in-ctx 'Gamma~ t)]
+[(term-in-ctx 'Gamma~ ('Pi~ (var x) T K)) -->
+    (term-in-ctx 'Gamma~ T)
+    (term-in-ctx (ctx (term-bind x T) 'Gamma~) K)]
+; Prop and * are in any context
+[(term-in-ctx 'Gamma~ (Prop)) (term-in-ctx 'Gamma~ ('star~)) <-- (coc-ctx? 'Gamma~)]
+[(term-in-ctx 'Gamma~ (Proof t)) --> (term-in-ctx 'Gamma~ t)]
+; var
+[(term-in-ctx 'Gamma~ (Expr _ expr)) --> (term-in-ctx 'Gamma~ expr)]
+[(term-in-ctx 'Gamma~ (Type tname expr)) --> (term-in-ctx 'Gamma~ expr)]
+[(term-in-ctx 'Gamma~ ('lambda~ (var x) T t)) -->
+    (term-in-ctx 'Gamma~ T)
+    (term-in-ctx (ctx (term-bind x T) 'Gamma~) t)]
+[(term-in-ctx 'Gamma~ (app x y)) -->
+    (term-in-ctx 'Gamma~ x)
+    (term-in-ctx 'Gamma~ y)]
+[(term-in-ctx 'Gamma~ ('forall~ (var x) T t)) -->
+    (term-in-ctx 'Gamma~ T)
+    (term-in-ctx (ctx (term-bind x T) 'Gamma~) t)]
+
+[(top p) --> (term-in-ctx ('mt~) p)]
+[(term-in-ctx 'Gamma~ ('line~ e res)) -->
+    (term-in-ctx 'Gamma~ e)
+    (term-in-ctx 'Gamma~ res)]
+
+[(warnning "expr-not-in-ctx" e) <-- (coc-expr? e) (~ term-in-ctx _ e)]
+[(error "expr-not-in-ctx" e) <--
+    (input-expr? e)
+    (warnning "expr-not-in-ctx" e)]

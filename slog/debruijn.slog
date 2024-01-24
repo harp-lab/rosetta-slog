@@ -1,0 +1,60 @@
+
+<< (include "./foo.slog") >>
+
+; compile a lambda expression into de bruijn indexed lambda
+
+; define syntax for lambda expressions
+[(lam-expr? ?(app x y)) <-- (lam-expr? x) (lam-expr? y)]
+[(lam-expr?  ?('lambda~ (var x) body)) <-- (lam-expr? body)]
+(lam-expr? ?(ref x))
+
+; if a expr is in not in any lambda binding (combinator)
+[(top? ?(top e)) <-- (lam-expr? e)]
+
+; define syntax for de bruijn indexed lambda expressions
+[(db-expr? ?(d-app x y)) <-- (db-expr? x) (db-expr? y)]
+[(db-expr? ?(d-'lambda~ body)) <-- (db-expr? body)]
+(db-expr? ?(D num))
+
+; defintion of context
+(context? ?(empty))
+[(context? ?(ext ctx (dep var-name num))) <-- (context? ctx)]
+
+; ; compute the context of every expression
+[(term-in-ctx (empty) e) <-- (top e)]
+[(term-in-ctx 'Gamma~ (app x y)) --> (term-in-ctx 'Gamma~ x) (term-in-ctx 'Gamma~ y)]
+[(term-in-ctx (empty) ('lambda~ (var x) body)) --> (term-in-ctx (ext (empty) (dep x 0)) body)]
+[(term-in-ctx 'Gamma~ ('lambda~ (var x) body))
+ (= 'Gamma~ (ext rest (dep xx max-dep))) -->
+    (term-in-ctx (ext 'Gamma~ (dep x {+ max-dep 1})) body)]
+
+; find the depth for each variable reference
+[(find-dep (empty) x) --> (error "free-variable-in-top-contex" (ref x))]
+(found ?(find-dep (ext 'Gamma~ (dep x n)) x) n)
+[(find-dep (ext 'Gamma~ (dep y _)) x) (=/= x y) --> (find-dep 'Gamma~ x)]
+[(found ?(find-dep (ext 'Gamma~ (dep y _)) x) n) <--
+    (=/= x y) (found (find-dep 'Gamma~ x) n)]
+
+; compile
+[(debruijn ?(term-in-ctx 'Gamma~ (app f arg)) (app d-f d-arg)) <--
+    (debruijn (term-in-ctx 'Gamma~ f) d-f)
+    (debruijn (term-in-ctx 'Gamma~ arg) d-arg)]
+[(debruijn ?(term-in-ctx (empty) ('lambda~ (var x) body)) (d-'lambda~ d-body)) <--
+    (debruijn (term-in-ctx (ext (empty) (dep x 0)) body) d-body)]
+[(debruijn ?(term-in-ctx 'Gamma~ ('lambda~ (var x) body)) (d-'lambda~ d-body)) <--
+    (= 'Gamma~ (ext rest (dep xx max-dep)))
+    (debruijn (term-in-ctx (ext 'Gamma~ (dep x {+ max-dep 1})) body)
+            d-body)]
+[(debruijn ?(term-in-ctx 'Gamma~ (ref x)) (D n)) <--
+    (found !(find-dep 'Gamma~ x) n)]
+
+[(error "debruijn-compile-stuck" ?(term-in-ctx 'Gamma~ e)) <-- (~ debruijn (term-in-ctx 'Gamma~ e) _)]
+
+; test cases
+(top
+    (app ('lambda~ (var "x")
+            ('lambda~ (var "y") (app (ref "y") (ref "x"))))
+         ('lambda~ (var "x") (app (ref "x") (ref "x")))))
+
+(print "top-debruijn" {debruijn (term-in-ctx (empty) {top})})
+; (print "top-debruijn" (app (d-'lambda~ (d-'lambda~ (app (D 1) (D 0)))) (d-'lambda~ (app (D 0) (D 0)))))

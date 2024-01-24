@@ -1,0 +1,47 @@
+
+; typing
+; ta-var
+; x:T ∈ Γ
+; -------------
+; Γ ⥛ x : T 
+[(has-type 'Gamma~ (ref x) T) <--
+    (term-in-ctx 'Gamma~ (ref x))
+    ('in~ 'Gamma~ (term-bind x T))]
+; TODO: is this correct?
+[(has-type 'Gamma~ (ref x) T') <--
+    (has-type 'Gamma~ (ref x) T)
+    (ctx-'sqsubseteq~ (ctx (term-bind x T) 'Gamma~') 'Gamma~)
+    (the-same-type 'Gamma~' T T')]
+; ta-abs
+; Γ ⥛ S :: ∗   Γ,x:S ⥛ t : T
+; ---------------------------
+; Γ ⥛ λx:S.t : Πx:S.T
+[(has-type 'Gamma~ ('lambda~ (var x) S t) ('Pi~ (var x) S T)) <--
+    (term-in-ctx 'Gamma~ ('lambda~ (var x) S t))
+    (has-kind 'Gamma~ S ('star~))
+    (has-type (ctx (term-bind x S) 'Gamma~) t T)]
+; ta-app
+; Γ ⥛ t1 : Πx:S1.T    Γ ⥛ t2 : S2
+; Γ ⥛ S1 ≡ S2
+; --------------------------------
+; Γ ⥛ t1 t2 : [x ⥛ t2]T
+[(has-type 'Gamma~ (app t1 t2) T-substed)
+ (term-in-ctx 'Gamma~ T-substed) <--
+    (term-in-ctx 'Gamma~ (app t1 t2))
+    (has-type 'Gamma~ t1 ('Pi~ (var x) S1 T))
+    (has-type 'Gamma~ t2 S2)
+    (the-same-type 'Gamma~ S1 S2)
+    (subst (do-subst x t2 T) T-substed)]
+[(term-in-ctx 'Gamma~ (app t1 t2))
+ (has-type 'Gamma~ t1 ('Pi~ (var x) S1 T))
+ (has-type 'Gamma~ t2 S2)
+ (the-same-type 'Gamma~ S1 S2) -->
+    (do-subst x t2 T)]
+; qt-all-e
+; Γ ⥛ T :: ∗     Γ,x:T ⥛ t : Prop
+; ---------------------------------
+; Γ ⥛ all x:T.t : Prop
+[(has-type 'Gamma~ ('forall~ (var x) T t) (Prop)) <--
+    (term-in-ctx 'Gamma~ ('forall~ (var x) T t))
+    (has-kind 'Gamma~ T ('star~))
+    (has-type (ctx (term-bind x T) 'Gamma~) t (Prop))]

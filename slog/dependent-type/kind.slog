@@ -1,0 +1,42 @@
+; Kinding rules
+
+; wfa-star
+; Γ ⥛ T :: ∗  Γ,x:T ⥛ K
+; ----------------------
+; Γ ⥛ Πx:T.K 
+[(term-in-ctx 'Gamma~ ('Pi~ (var x) T K)) --> (term-in-ctx 'Gamma~ ('star~)) (has-kind 'Gamma~ T ('star~))]
+; no K-Var here all T-Var is inlined
+; ka-pi
+; Γ ⥛ T1 :: ∗  Γ,x:T1 ⥛ T2 :: ∗
+; --------------------------------
+; Γ ⥛ Πx:T1.T2 :: ∗ 
+; a Pi has kind if its type and body has kind
+[(has-kind 'Gamma~ ('Pi~ (var x) T1 T2) ('star~)) (term-in-ctx 'Gamma~ ('star~)) <--
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) T1 T2))
+    (has-kind 'Gamma~ T1 ('star~))
+    (has-kind (ctx (term-bind x T1) 'Gamma~) T2 ('star~))]
+; ka-app
+; Γ ⥛ S :: Πx:T1.K   Γ ⥛ t : T2
+; Γ ⥛ T1 ≡ T2
+; --------------------------
+; Γ ⥛ S t :: [x ⥛ t]K       should be kinding here
+; a type application has kind if
+; its type has kind and argument has type
+; meanwhile they have the same type
+[(has-kind 'Gamma~ (t-app S t) K-substed)
+ (term-in-ctx 'Gamma~ K-substed) <--
+    (term-in-ctx 'Gamma~ (t-app S t))
+    (has-kind 'Gamma~ S ('Pi~ (var x) T1 K))
+    (has-type 'Gamma~ t T2)
+    (the-same-type 'Gamma~ T1 T2)
+    (subst (do-subst x t K) K-substed)]
+[(term-in-ctx 'Gamma~ (t-app S t))
+ (has-kind 'Gamma~ S ('Pi~ (var x) T1 K))
+ (has-type 'Gamma~ t T2)
+ (the-same-type 'Gamma~ T1 T2) -->
+    (do-subst x t K)]
+; ka-prop
+[(term-in-ctx 'Gamma~ (Prop)) --> (term-in-ctx 'Gamma~ ('star~)) (has-kind 'Gamma~ (Prop) ('star~))]
+; ka-prf
+[(term-in-ctx 'Gamma~ (Proof t)) (has-type 'Gamma~ t (Prop)) -->
+     (has-kind 'Gamma~ (Proof t) ('star~)) (term-in-ctx 'Gamma~ ('star~))]

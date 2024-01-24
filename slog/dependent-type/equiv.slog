@@ -1,0 +1,234 @@
+
+; equivalence
+
+; qka-star
+; Γ ⥛ ∗ ≡ ∗
+[(the-same-kind 'Gamma~ ('star~) ('star~)) <--
+    (term-in-ctx 'Gamma~ ('star~))]
+; qka-pi
+; Γ ⥛ T1 ≡ T2     Γ,x:T1 ⥛ K1 ≡ K2
+; ---------------------------------
+; Γ ⥛ Πx:T1.K1 ≡ Πx:T2.K2
+[(the-same-kind 'Gamma~ ('Pi~ (var x) T1 K1) ('Pi~ (var x) T2 K2)) <--
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) T1 K1))
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) T2 K2))
+    (the-same-type 'Gamma~ T1 T2)
+    (the-same-kind (ctx (term-bind x T1) 'Gamma~) K1 K2)]
+[(term-in-ctx 'Gamma~ ('Pi~ (var x) T1 K1)) <--   
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) T2 K2))
+    (the-same-type 'Gamma~ T1 T2)
+    (the-same-kind (ctx (term-bind x T1) 'Gamma~) K1 K2)]
+[(term-in-ctx 'Gamma~ ('Pi~ (var x) T2 K2)) <--
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) T1 K1))
+    (the-same-type 'Gamma~ T1 T2)
+    (the-same-kind (ctx (term-bind x T1) 'Gamma~) K1 K2)]
+
+; qta-pi
+; Γ ⥛ S1 ≡ T1     Γ,x:T1 ⥛ S2 ≡ T2
+; ---------------------------------
+; Γ ⥛ Πx:S1.S2 ≡ Πx:T1.T2
+[(the-same-type 'Gamma~ ('Pi~ (var x) S1 S2) ('Pi~ (var x) T1 T2)) <--
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) S1 S2))
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) T1 T2))
+    (the-same-type 'Gamma~ S1 T1)
+    (the-same-type (ctx (term-bind x T1) 'Gamma~) S2 T2)]
+[(term-in-ctx 'Gamma~ ('Pi~ (var x) S1 S2)) <--
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) T1 T2))
+    (the-same-type 'Gamma~ S1 T1)
+    (the-same-type (ctx (term-bind x T1) 'Gamma~) S2 T2)]
+[(term-in-ctx 'Gamma~ ('Pi~ (var x) T1 T2)) <--
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) S1 S2))
+    (the-same-type 'Gamma~ S1 T1)
+    (the-same-type (ctx (term-bind x T1) 'Gamma~) S2 T2)]
+; qta-app
+; Γ ⥛ S1 ≡ S2     Γ ⥛ t1 ≡ t2
+; -----------------------------
+; Γ ⥛ S1 t1 ≡ S2 t2
+[(the-same-type 'Gamma~ (t-app S1 t1) (t-app S2 t2)) <--
+    (term-in-ctx 'Gamma~ (t-app S1 t1))
+    (term-in-ctx 'Gamma~ (t-app S2 t2))
+    (the-same-type 'Gamma~ S1 S2)
+    (the-same-type 'Gamma~ t1 t2)]
+[(term-in-ctx 'Gamma~ (t-app S1 t1)) <--
+    (term-in-ctx 'Gamma~ (t-app S2 t2))
+    (the-same-type 'Gamma~ S1 S2)
+    (the-same-type 'Gamma~ t1 t2)]
+[(term-in-ctx 'Gamma~ (t-app S2 t2)) <--
+    (term-in-ctx 'Gamma~ (t-app S1 t1))
+    (the-same-type 'Gamma~ S1 S2)
+    (the-same-type 'Gamma~ t1 t2)]
+
+; qka-pi-prf
+; t -→wh all x:T1.t2
+; Γ ⥛ S1 ≡ T1     Γ,x:S1 ⥛ S2 ≡ Prf t2
+; -------------------------------------
+; Γ ⥛ Πx:S1.S2 ≡ Prf t
+[(the-same-type 'Gamma~ ('Pi~ (var x) S1 S2) (Proof t)) <--
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) S1 S2))
+    (term-in-ctx 'Gamma~ (Proof t))
+    (whnf t ('forall~ (var x) T1 t2))
+    (the-same-type 'Gamma~ S1 T1)
+    (the-same-type (ctx (term-bind x T1) 'Gamma~) S2 (Proof t2))]
+[(term-in-ctx 'Gamma~ ('Pi~ (var x) S1 S2)) <--
+    (term-in-ctx 'Gamma~ (Proof t))
+    (whnf t ('forall~ (var x) T1 t2))
+    (the-same-type 'Gamma~ S1 T1)
+    (the-same-type (ctx (term-bind x T1) 'Gamma~) S2 (Proof t2))]
+[(term-in-ctx 'Gamma~ (Proof t)) <--
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) S1 S2))
+    (whnf t ('forall~ (var x) T1 t2))
+    (the-same-type 'Gamma~ S1 T1)
+    (the-same-type (ctx (term-bind x T1) 'Gamma~) S2 (Proof t2))]
+; TODO: seems above rule has issue, the inner most rule can be Prop type?
+; because we have this typing rule
+; Γ ⊢ T :: ∗    Γ,x:T ⊢ t : Prop
+; -----------------------------
+; Γ ⊢ Prf (all x:T.t) ≡ Πx:T.Prf t :: *
+[(the-same-type 'Gamma~ (Proof ('forall~ (var x) T t))
+                  ('Pi~ (var x) T (Proof t)))
+ (has-kind 'Gamma~ (Proof ('forall~ (var x) T t)) ('star~))
+ (has-kind 'Gamma~ ('Pi~ (var x) T (Proof t)) ('star~)) <--
+    (term-in-ctx 'Gamma~ (Proof ('forall~ (var x) T t)))
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) T (Proof t)))
+    (has-kind 'Gamma~ T ('star~))
+    (has-type (ctx (term-bind x T) 'Gamma~) t (Prop))]
+[(term-in-ctx 'Gamma~ (Proof ('forall~ (var x) T t)))
+ (print "here" ('Pi~ (var x) T (Proof t)))  <--
+    (term-in-ctx 'Gamma~ ('Pi~ (var x) T (Proof t)))
+    (has-kind 'Gamma~ T ('star~))
+    (has-type (ctx (term-bind x T) 'Gamma~) t (Prop))]
+[(term-in-ctx 'Gamma~ ('Pi~ (var x) T (Proof t))) <--
+    (term-in-ctx 'Gamma~ (Proof ('forall~ (var x) T t)))
+    (has-kind 'Gamma~ T ('star~))
+    (has-type (ctx (term-bind x T) 'Gamma~) t (Prop))]
+
+; qka-prf-pi
+; Γ ⥛ Πx:S1.S2 ≡ Prf t
+; ---------------------
+; Γ ⥛ Prf t ≡ Πx:S1.S2
+; TODO: this should be covered by reflixivity of eq rules?
+
+; qka-prf
+; Γ ⥛ s ≡ t
+; ---------------------
+; Γ ⥛ Prf s ≡ Prf t 
+[(the-same-type 'Gamma~ (Proof s) (Proof t)) <--
+    (term-in-ctx 'Gamma~ (Proof s))
+    (term-in-ctx 'Gamma~ (Proof t))
+    (the-same-term 'Gamma~ s t)]
+[(term-in-ctx 'Gamma~ (Proof s)) <--
+    (term-in-ctx 'Gamma~ (Proof t))
+    (the-same-term 'Gamma~ s t)]
+[(term-in-ctx 'Gamma~ (Proof t)) <--
+    (term-in-ctx 'Gamma~ (Proof s))
+    (the-same-term 'Gamma~ s t)]
+
+; qa-wh
+; Γ ⥛ whnf(s) ≡wh whnf(t)
+; ------------------------
+; Γ ⥛ s ≡ t
+[(the-same-term 'Gamma~ t1 t2) <--
+    (term-in-ctx 'Gamma~ t1)
+    (term-in-ctx 'Gamma~ t2)
+    (whnf t1 t1-whnf)
+    (whnf t2 t2-whnf)
+    (the-same-term 'Gamma~ t1-whnf t2-whnf)]
+; qa-abs
+; Γ , x:S ⥛ t1 ≡ t2
+; -----------------
+; Γ ⥛ λx:S.t1 ≡wh λx:S.t2  
+[('lambda~ (var x2) S t1) <--
+    (term-in-ctx 'Gamma~ ('lambda~ (var x2) S t2))
+    (the-same-term (ctx (term-bind x S) 'Gamma~) t1 t2)] 
+[(term-in-ctx 'Gamma~ nf)
+ (the-same-term 'Gamma~ ('lambda~ (var x2) S t2) nf) <--
+    (whnf ('lambda~ (var x2) S t1) nf)
+    (term-in-ctx 'Gamma~ ('lambda~ (var x2) S t2))
+    (the-same-term (ctx (term-bind x S) 'Gamma~) t1 t2)] 
+[('lambda~ (var x1) S t2) <--
+    (term-in-ctx 'Gamma~ ('lambda~ (var x1) S t1))
+    (the-same-term (ctx (term-bind x S) 'Gamma~) t1 t2)]
+[(term-in-ctx 'Gamma~ nf)
+ (the-same-term 'Gamma~ ('lambda~ (var x1) S t1) nf) <--
+    (whnf ('lambda~ (var x1) S t2) nf)
+    (term-in-ctx 'Gamma~ ('lambda~ (var x1) S t1))
+    (the-same-term (ctx (term-bind x S) 'Gamma~) t1 t2)]
+; qa-app
+; Γ ⥛ s1 ≡wh s2     Γ ⥛ t1 ≡wh t2
+; --------------------------------
+; Γ ⥛ s1 t1 ≡wh s2 t2
+[(app s1 t1) <--
+    (term-in-ctx 'Gamma~ (app s2 t2))
+    (the-same-term 'Gamma~ s1 s2)
+    (the-same-term 'Gamma~ t1 t2)]
+[(term-in-ctx 'Gamma~ nf)
+ (the-same-term 'Gamma~ (app s1 t1) nf) <--
+    (whnf (app s2 t2) nf)
+    (term-in-ctx 'Gamma~ (app s1 t1))
+    (the-same-term 'Gamma~ s1 s2)
+    (the-same-term 'Gamma~ t1 t2)]
+[(app s2 t2) <--
+    (term-in-ctx 'Gamma~ (app s1 t1))
+    (the-same-term 'Gamma~ s1 s2)
+    (the-same-term 'Gamma~ t1 t2)]
+[(term-in-ctx 'Gamma~ nf)
+ (the-same-term 'Gamma~ (app s1 t1) nf)  <--
+    (whnf (app s2 t2) nf)
+    (term-in-ctx 'Gamma~ (app s1 t1))
+    (the-same-term 'Gamma~ s1 s2)
+    (the-same-term 'Gamma~ t1 t2)]
+
+; TODO: why there is 2 rules here
+; qa-nabs
+; Γ , x:S ⥛ s x ≡ t     s not a λ
+; -------------------------------
+; Γ ⥛ s ≡wh λx:S.t 
+[('lambda~ (var x) S t) <--
+    (term-in-ctx 'Gamma~ s)
+    (not-coc-lambda s)
+    (the-same-term (ctx (term-bind x S) 'Gamma~) (app s (ref x)) t)]
+[(term-in-ctx 'Gamma~ nf)
+ (the-same-term 'Gamma~ s nf) <--
+    (whnf ('lambda~ (var x) S t) nf)
+    (term-in-ctx 'Gamma~ s)
+    (not-coc-lambda s)
+    (the-same-term (ctx (term-bind x S) 'Gamma~) (app s (ref x)) t)]
+
+; Γ , x:S ⥛ s ≡ t x     t not a λ
+; ---------------------------------
+; Γ ⥛ λx:S.s ≡wh t 
+[(the-same-term 'Gamma~ ('lambda~ (var x) S s) t) <--
+    (term-in-ctx 'Gamma~ ('lambda~ (var x) S s))
+    (term-in-ctx 'Gamma~ t)
+    (not-coc-lambda t)
+    (the-same-term (ctx (term-bind x S) 'Gamma~) s (app t (ref x)))]
+[(term-in-ctx 'Gamma~ ('lambda~ (var x) S s)) <--
+    (term-in-ctx 'Gamma~ ('lambda~ (var x) S s))
+    (term-in-ctx 'Gamma~ t)
+    (not-coc-lambda t)
+    (the-same-term (ctx (term-bind x S) 'Gamma~) s (app t (ref x)))]
+
+; qa-all-e
+; Γ ⥛ S1 ≡ T1     Γ,x:S1 ⥛ s ≡ t
+; -----------------------------
+; Γ ⥛ all x:S.s ≡wh all x:T.t
+[('forall~ (var x) S1 s) <--
+    (term-in-ctx 'Gamma~ ('forall~ (var x) T1 t))
+    (the-same-type 'Gamma~ S1 T1)
+    (the-same-term (ctx (term-bind x S1) 'Gamma~) s t)]
+[(term-in-ctx 'Gamma~ nf)
+ (the-same-term 'Gamma~ ('forall~ (var x) T1 t) nf) <--
+    (whnf ('forall~ (var x) S1 s) nf)
+    (term-in-ctx 'Gamma~ ('forall~ (var x) T1 t))
+    (the-same-type 'Gamma~ S1 T1)
+    (the-same-term (ctx (term-bind x S1) 'Gamma~) s t)]
+[('forall~ (var x) T1 t) <--
+    (term-in-ctx 'Gamma~ ('forall~ (var x) S1 s))
+    (the-same-type 'Gamma~ S1 T1)
+    (the-same-term (ctx (term-bind x S1) 'Gamma~) s t)]
+[(term-in-ctx 'Gamma~ nf)
+ (the-same-term 'Gamma~ ('forall~ (var x) S1 s) nf) <--  
+    (whnf ('forall~ (var x) T1 t) nf)
+    (term-in-ctx 'Gamma~ ('forall~ (var x) S1 s))
+    (the-same-type 'Gamma~ S1 T1)
+    (the-same-term (ctx (term-bind x S1) 'Gamma~) s t)]

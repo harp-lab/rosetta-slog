@@ -1,0 +1,52 @@
+(subst ?(do-subst x t ('star~)) ('star~))
+; (subst ?(do-subst x T (Proof)) (Proof))
+(subst ?(do-subst x T (Prop)) (Prop))
+[(subst ?(do-subst x t ('Pi~ (var xT) T K))
+    ('Pi~ (var xT) T-substed K-substed)) <--
+    (=/= x xT)
+    (subst !(do-subst x t T) T-substed)
+    (subst !(do-subst x t K) K-substed)]
+(subst ?(do-subst x t ('Pi~ (var x) T K)) ('Pi~ (var x) T K))
+
+; substitution for term in type
+(subst ?(do-subst (t-var T-name) t (t-var T-name)) (t-var T-name))
+[(subst ?(do-subst x t ('Pi~ (var T-arg) T-Targ T-body))
+    ('Pi~ (var T-arg) T-Targ-substed T-body-substed)) <--
+    (=/= x T-arg)
+    (subst !(do-subst x t T-Targ) T-Targ-substed)
+    (subst !(do-subst x t T-body) T-body-substed)]
+(subst ?(do-subst x t ('Pi~ (var t) T-Targ T-body)) ('Pi~ (var t) T-Targ T-body))
+[(subst ?(do-subst x t (t-app T-func t-arg))
+    (t-app T-func-substed t-arg-substed)) <--
+    (subst !(do-subst x t T-func) T-func-substed)
+    (subst !(do-subst x t t-arg) t-arg-substed)]
+[(subst ?(do-subst x t (Proof p)) (Proof p-substed)) <--
+    (subst !(do-subst x t p) p-substed)]
+; substitution for term in term
+(subst ?(do-subst x t (ref x)) t)
+[(=/= x y) --> (subst ?(do-subst x t (ref y)) (ref y))]
+;
+[(subst ?(do-subst x t ('lambda~ (var arg) T-arg body))
+    ('lambda~ (var arg) T-arg-substed body-substed)) <--
+    (=/= x arg)
+    (subst !(do-subst x t body) body-substed)
+    (subst !(do-subst x t T-arg) T-arg-substed)]
+[(subst (do-subst x t (app func arg))
+    {whnf (app func-substed arg-substed)}) <--
+    (subst (do-subst x t func) func-substed)
+    (subst (do-subst x t arg) arg-substed)]
+[(do-subst x t (app func arg)) -->
+    (do-subst x t func)
+    (do-subst x t arg)]
+[(app func-substed arg-substed) <--
+    (do-subst x t (app func arg)) 
+    (subst (do-subst x t func) func-substed)
+    (subst (do-subst x t arg) arg-substed)]
+[(subst ?(do-subst x t ('forall~ (var xA) T-arg body))
+         ('forall~ (var xA) T-arg-substed body-substed)) <--
+    (=/= x xA)
+    (subst !(do-subst x t body) body-substed)
+    (subst !(do-subst x t T-arg) T-arg-substed)]
+(subst ?(do-subst x t ('forall~ (var x) T-arg body)) ('forall~ (var x) T-arg body))
+
+[(error "subst-failed" ?(do-subst x t s)) <-- (~ subst (do-subst x t s) _)]

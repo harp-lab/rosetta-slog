@@ -1,0 +1,15 @@
+; the Calculus of Constructions (CoC) type checker
+
+<< (include "./syntax.slog") >>
+<< (include "./context.slog") >>
+<< (include "./whnf.slog") >>
+<< (include "./subst.slog") >>
+
+<< (include "./judgement.slog") >>
+
+[(error "type-check-failed" 
+    (miss-match ?(Type name T1)
+                ?(Expr name e))) <--
+    (has-type 'Gamma~ e T2)
+    ; (= 'Gamma~ ('mt~))      ; need this?
+    (~ the-same-type 'Gamma~ T1 T2)]

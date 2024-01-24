@@ -1,0 +1,77 @@
+
+[(coc-expr? t) <-- (coc-term? t)]
+[(coc-expr? t) <-- (coc-type? t)]
+[(coc-expr? t) <-- (coc-kind? t)]
+[(coc-expr? t) <-- (coc-program? t)]
+
+; CoC type
+(coc-type? ?(t-var X))
+[(coc-type? ?('Pi~ (var x) T1 T2)) <--
+    (coc-type? T1)
+    (coc-type? T2)]
+[(coc-type? ?(t-app T t)) <--
+    (non-coc-pi? T)
+    (coc-type? T)
+    (coc-term? t)]
+(coc-type? ?(Prop))
+[(coc-type? ?(Proof t)) <-- (coc-term? t)]
+
+(not-coc-pi? ?(t-var X))
+[(not-coc-pi? ?(t-app T x)) <-- (not-coc-pi? T)]
+
+; CoC Kind
+(coc-kind? ?('star~))
+; (coc-kind? ?(Proof))
+[(coc-kind? ?('Pi~ (var x) T K)) <-- 
+    (coc-type? T)   
+    (coc-kind? K)]
+
+; CoC term
+(coc-term? ?(ref x))
+(coc-term? ?(Expr name e))   ; globally defined expr
+(coc-term? ?(Type name t))   ; globally defined Type
+; (coc-term? ?(apply-1 f x))
+; (coc-term? ?(apply-2 f x y))
+; (coc-term? ?(apply-3 f x y))
+[(coc-term? ?('lambda~ (var x) T t)) <--
+    (coc-type? T)
+    (coc-term? t)]
+[(coc-term? ?(app x y)) <--
+    (not-coc-lambda x)
+    (coc-term? x)]
+[(coc-term? ?('forall~ (var x) T t)) <--
+    (coc-type? T)
+    (coc-term? t)]
+
+(not-coc-lambda ?(ref x))
+(not-coc-lambda ?('forall~ (var x) T t))
+[(not-coc-lambda ?(app x y)) <-- (not-coc-lambda x)]
+(coc-term-claim ?(Type name t))
+[(coc-term-not-claim t) <-- (coc-term? t) (~ coc-term-claim t)]
+
+; CoC Program
+; maybe for parallel we don't want this
+[(coc-program? ?('line~ e res)) <--
+    (coc-expr? e)
+    (coc-program? res)]
+(coc-program? ?('program-end~))
+
+; [(top p) <-- (coc-program? p) (~ 'line~ _ p)]
+(top ?(Expr name e))
+(top ?(Type name e))
+
+; input are all Expr and type
+(input-expr? ?(Expr name e))
+[(input-expr? (Expr name e)) --> (input-expr? e)]
+(input-expr? ?(Type name e))
+[(input-expr? (Type name e)) --> (input-expr? e)]
+[(input-expr? ('Pi~ (var x) T1 T2)) -->
+    (input-expr? T1) (input-expr? T2)]
+[(input-expr? ('lambda~ (var x) T t)) -->
+    (input-expr? T) (input-expr? t)]
+[(input-expr? (app x y)) --> (input-expr? x) (input-expr? y)]
+[(input-expr? ('forall~ (var x) T t)) -->
+    (input-expr? T) (input-expr? t)]
+[(input-expr? (Proof t)) --> (input-expr? t)]
+[(input-expr? (t-app T t)) --> (input-expr? T) (input-expr? t)]
+

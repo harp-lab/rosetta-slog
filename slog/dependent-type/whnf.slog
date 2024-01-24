@@ -1,0 +1,35 @@
+
+; reduce everything to weak head normal form
+(wh-reducable ?(app ('lambda~ x T t1) t2))
+(wh-reducable ?(app (app _ _) t2))
+
+(wh-non-reducable ?(ref x))
+(wh-non-reducable ?('lambda~ x T t1))
+[(wh-non-reducable ?('forall~ x T t)) <-- (wh-non-reducable t)]
+(wh-non-reducable ?(app (var x) t2))
+(wh-reducable ?(app ('forall~ x T t) t2))
+
+[(wh-non-reducable t) --> (whnf t t)]
+; [(wh-reducable t) --> (wh-norm t)]
+[(coc-term? t) --> (wh-norm t)]
+
+; weak head reduction
+; base case
+[('longrightarrow~-wh ?(wh-norm t) t) <-- (wh-non-reducable t)]
+; recursive case
+[('longrightarrow~-wh (wh-norm t1) t2)
+ (wh-non-reducable t2) -->
+    (whnf t1 t2)]
+[('longrightarrow~-wh ?(wh-norm (app t1 t2)) (app t1' t2)) <--
+    ('longrightarrow~-wh !(wh-norm t1) t1')]
+[(wh-norm (app ('lambda~ x T t1) t2)) --> (do-subst x t2 t1)]
+('longrightarrow~-wh ?(wh-norm (app ('lambda~ x T t1) t2)) {'mapsto~ x t2 t1})
+[('longrightarrow~-wh ?(wh-norm ('forall~ x T t)) ('forall~ x T norm-t)) <--
+    ('longrightarrow~-wh !(wh-norm t) norm-t)]
+; transitive
+[('longrightarrow~-wh (wh-norm t1) t2)
+ ('longrightarrow~-wh (wh-norm t2) t3) -->
+    ('longrightarrow~-wh (wh-norm t1) t3)]
+; create term in ctx
+[(term-in-ctx 'Gamma~ t) (whnf t t-whnf) --> (term-in-ctx 'Gamma~ t-whnf)]
+

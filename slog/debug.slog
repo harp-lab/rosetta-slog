@@ -1,0 +1,20 @@
+(print "the-same-nat" (Proof ('forall~ (var "a") (Prop ) ('forall~ (var "x") (Proof (ref "a")) ('forall~ (var "s") ('Pi~ (var #51) (Proof #24) (Proof #24)) (ref "a"))))))
+(print "the-same-nat" (Proof ('forall~ (var "a") (Prop ) ('forall~ (var "x") (Proof (ref "a")) ('forall~ (var "s") (Proof ('forall~ #44)) (ref "a"))))))
+(print "the-same-nat" ('Pi~ (var "a") (Prop ) (Proof ('forall~ (var "x") (Proof (ref "a")) ('forall~ (var "s") ('Pi~ (var #51) (Proof #24) (Proof #24)) (ref "a"))))))
+(print "the-same-nat" ('Pi~ (var "a") (Prop ) (Proof ('forall~ (var "x") (Proof (ref "a")) ('forall~ (var "s") (Proof ('forall~ #44)) (ref "a"))))))
+(print "the-same-nat" ('Pi~ (var "a") (Prop ) ('Pi~ (var "x") (Proof (ref "a")) (Proof ('forall~ (var "s") ('Pi~ (var #51) (Proof #24) (Proof #24)) (ref "a"))))))
+(print "the-same-nat" ('Pi~ (var "a") (Prop ) ('Pi~ (var "x") (Proof (ref "a")) (Proof ('forall~ (var "s") (Proof ('forall~ #44)) (ref "a"))))))
+(print "the-same-nat"
+    ('Pi~ (var "a") (Prop ) 
+        ('Pi~ (var "x") (Proof (ref "a"))
+            ('Pi~ (var "s") (Proof ('forall~ (var #51) (Proof #24) (ref #47))) (Proof (ref "a"))))))
+(print "the-same-nat"
+    ('Pi~ (var "a") (Prop )
+        ('Pi~ (var "x") (Proof (ref "a"))
+            ('Pi~ (var "s") ('Pi~ (var "'rightarrow~") (Proof (ref #47)) (Proof (ref #47)))
+                (Proof (ref "a"))))))
+(print "debug-zero-type"
+    ('Pi~ (var "a") (Prop )
+        ('Pi~ (var "z") (Proof (ref "a"))
+            ('Pi~ (var "s") ('Pi~ (var "'rightarrow~") (Proof (ref #47)) (Proof (ref #47)))
+                (Proof (ref "a"))))))

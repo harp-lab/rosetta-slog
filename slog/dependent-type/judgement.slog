@@ -1,0 +1,61 @@
+<< (include "./kind.slog") >>
+<< (include "./type.slog") >>
+<< (include "./equiv.slog") >>
+
+; every term in context will have a infered type judgement
+; every type in context will have a infered kind judgement
+
+; type judgement, under context `'Gamma~`, term `t` has type `T`
+[(judgement? ?(has-type 'Gamma~ t T)) <--
+    (term-in-ctx 'Gamma~ t)
+    (coc-type? T)]
+[(error "invalid-judgement" j) <-- (= j (has-type _ _ _)) (~ judgement? j)]
+
+; kind judgement, under context `'Gamma~`, type `T` has kind `K`
+[(judgement? ?(has-kind 'Gamma~ T K)) <--
+    (term-in-ctx 'Gamma~ T)
+    (coc-kind? K)]
+[(error "invalid-judgement" j) <-- (= j (has-kind _ _ _)) (~ judgement? j)]
+
+; term equiv judgement, under context `'Gamma~`, term `t1` is equiv to `t2`
+[(judgement? ?(the-same-term 'Gamma~ t1 t2)) <--
+    (term-in-ctx 'Gamma~ t1) (term-in-ctx 'Gamma~ t2)
+    (coc-term? t1) (coc-term? t2)]
+[(term-in-ctx 'Gamma~ t1) (coc-term? t1) --> (the-same-term 'Gamma~ t1 t1)]
+[(the-same-term 'Gamma~ t1 t2) --> (the-same-term 'Gamma~ t2 t1)]
+[(the-same-term 'Gamma~ t1 t2) (the-same-term 'Gamma~ t2 t3) -->
+    (the-same-term 'Gamma~ t1 t3)]
+[(the-same-term 'Gamma~ t1 t2) (has-type 'Gamma~ t1 T) --> (has-type 'Gamma~ t2 T)]
+[(the-same-term 'Gamma~ t1 t2) (has-type 'Gamma~ t2 T) --> (has-type 'Gamma~ t1 T)]
+[(error "invalid-judgement" j) <-- (= j (the-same-term _ _ _)) (~ judgement? j)]
+
+; type equiv judgement, under context `'Gamma~`, type `T1` is equiv to `T2`
+[(judgement? ?(the-same-type 'Gamma~ T1 T2)) <--
+    (term-in-ctx 'Gamma~ T1) (term-in-ctx 'Gamma~ T2)
+    (coc-type? T1) (coc-type? T2)]
+[(term-in-ctx 'Gamma~ T1) (coc-type? T1) --> (the-same-type 'Gamma~ T1 T1)]
+[(the-same-type 'Gamma~ T1 T2) --> (the-same-type 'Gamma~ T2 T1)]
+[(the-same-type 'Gamma~ T1 T2) (the-same-type 'Gamma~ T2 T3) -->
+    (the-same-type 'Gamma~ T1 T3)]
+[(the-same-type 'Gamma~ T1 T2) (has-type 'Gamma~ t T1) --> (has-type 'Gamma~ t T2)]
+[(the-same-type 'Gamma~ T1 T2) (has-type 'Gamma~ t T2) --> (has-type 'Gamma~ t T1)]
+[(error "invalid-judgement" j) <-- (= j (the-same-type _ _ _)) (~ judgement? j)]
+
+; kind equiv judgement, under context `'Gamma~`, kind `K1` is equiv to `K2`
+[(judgement? ?(the-same-kind 'Gamma~ K1 K2)) <--
+    (term-in-ctx 'Gamma~ K1) (term-in-ctx 'Gamma~ K2)
+    (coc-kind? K1) (coc-kind? K2)]
+[(term-in-ctx 'Gamma~ K1) (coc-kind? K1) --> (the-same-kind 'Gamma~ K1 K1)]
+[(the-same-kind 'Gamma~ K1 K2) --> (the-same-kind 'Gamma~ K2 K1)]
+[(the-same-kind 'Gamma~ K1 K2) (the-same-kind 'Gamma~ K2 K3) -->
+    (the-same-kind 'Gamma~ K1 K3)]
+[(the-same-kind 'Gamma~ K1 K2) (has-kind 'Gamma~ T K1) --> (has-kind 'Gamma~ T K2)]
+[(the-same-kind 'Gamma~ K1 K2) (has-kind 'Gamma~ T K2) --> (has-kind 'Gamma~ T K1)]
+[(error "invalid-judgement" j) <-- (= j (the-same-kind _ _ _)) (~ judgement? j)]
+
+
+[(has-type 'Gamma~ (Expr name e) T) <-- (term-in-ctx 'Gamma~ (Expr name e)) (has-type 'Gamma~ e T)]
+[(has-kind 'Gamma~ (Type name e) K) <-- (term-in-ctx 'Gamma~ (Type name e)) (has-kind 'Gamma~ e K)]
+; check if all term has been typed, all type has been kinded
+[(error "not-typed" t) <-- (coc-term-not-claim t)  (term-in-ctx 'Gamma~ t) (~ has-type 'Gamma~ t _)]
+[(error "not-kinded" T) <-- (coc-type? T) (term-in-ctx 'Gamma~ T) (~ has-kind 'Gamma~ T _)]
