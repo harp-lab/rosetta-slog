@@ -48,5 +48,3 @@
     (subst !(do-subst x t body) body-substed)
     (subst !(do-subst x t T-arg) T-arg-substed)]
 (subst ?(do-subst x t ('forall~ (var x) T-arg body)) ('forall~ (var x) T-arg body))
-
-[(error "subst-failed" ?(do-subst x t s)) <-- (~ subst (do-subst x t s) _)]

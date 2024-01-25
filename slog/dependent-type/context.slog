@@ -16,7 +16,6 @@
 [(coc-ctx? ?(ctx bind rest)) <--
     (coc-ctx? rest)
     (coc-bind? bind)]
-[(error "invalid-ctx" 'Gamma~) <-- (= 'Gamma~ (ctx _ _)) (~ coc-ctx? 'Gamma~)]
 ; define binding
 [(coc-bind? ?(term-bind x T)) <--
     (var x)
@@ -24,15 +23,12 @@
 [(coc-bind? ?(type-bind X K)) <--
     (t-var X)
     (coc-kind? K)]
-[(error "invalid-bind" b) <-- (= b (term-bind _ _)) (~ coc-bind? b)]
-[(error "invalid-bind" b) <-- (= b (type-bind _ _)) (~ coc-bind? b)]
 
 ; term-in-ctx 2 arities
 ; `t` is a expression in context `'Gamma~`
 [(coc-term-in-ctx? ?(term-in-ctx 'Gamma~ t)) <--
     (coc-expr? t)
     (coc-ctx? 'Gamma~)]
-[(error "invalid-term-in-ctx" t) <-- (term-in-ctx 'Gamma~ t) (~ coc-term-in-ctx? (term-in-ctx 'Gamma~ t))]
 
 ; t-var x
 [(term-in-ctx 'Gamma~ (t-app T t)) --> (term-in-ctx 'Gamma~ T) (term-in-ctx 'Gamma~ t)]
@@ -61,6 +57,3 @@
     (term-in-ctx 'Gamma~ res)]
 
 [(warnning "expr-not-in-ctx" e) <-- (coc-expr? e) (~ term-in-ctx _ e)]
-[(error "expr-not-in-ctx" e) <--
-    (input-expr? e)
-    (warnning "expr-not-in-ctx" e)]

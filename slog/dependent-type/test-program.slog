@@ -1,35 +1,40 @@
 << (include "./coc.slog") >>
 ; a test program
 
+; PROGRAM_BEGIN
+
 ; in CoC, adt K is a expression (a forall Prop) rather than a type
 ; but `Proof K` is a type
 ; ℕ : expr
 ;
-(Type "nat" (Prop))
-(Expr "nat"
-    ('forall~ (var "a") (Prop)
-        ('forall~ (var "z") (Proof (ref "a"))
-        ('forall~ (var "s") ('Pi~ (var "'rightarrow~") (Proof (ref "a")) (Proof (ref "a")))
-    (ref "a")))))
+(TYPE "nat" (Prop))
+(EXPR "nat"
+    ('forall~ (Var "a") (Prop)
+        ('forall~ (Var "z") (Proof (Ref "a"))
+        ('forall~ (Var "s") ('Pi~ (Var "'rightarrow~") (Proof (Ref "a")) (Proof (Ref "a")))
+    (Ref "a")))))
+; ('forall~ (var 0) (Prop ) ('forall~ (var 1) (Proof (ref 0)) ('forall~ (var 2) ('Pi~ (var 2) (Proof (ref 0)) (Proof (ref 0))) (ref 0))))
+; print debruijn indexed version of nat
+
 ; abbreviate
-('nat~ (Proof {Expr "nat"}))
-(Type "zero" {'nat~})
-(Expr "zero"
-    ('lambda~ (var "a") (Prop)
-        ('lambda~ (var "z") (Proof (ref "a"))
-        ('lambda~ (var "s") ('Pi~ (var "'rightarrow~") (Proof (ref "a")) (Proof (ref "a")))
-    (ref "z")))))
-; (Type "succ" ('Pi~ (var "'rightarrow~") {'nat~} {'nat~}))
-; (Expr "succ"
-;     ('lambda~ (var "n") (Proof {Expr "nat"})
-;     ('lambda~ (var "a") (Prop)
-;         ('lambda~ (var "z") (Proof (ref "a"))
-;         ('lambda~ (var "s") ('Pi~ (var "'rightarrow~") (Proof (ref "a")) (Proof (ref "a")))
-;     (app (ref "s")
-;          (app (app (app (ref "n") (ref "a"))
-;                    (ref "z"))
-;               (ref "s"))))))))
+; ('nat~ (Proof {EXPR "nat"}))
+; (TYPE "zero" {'nat~})
+; (EXPR "zero"
+;     ('lambda~ (Var "a") (Prop)
+;         ('lambda~ (Var "z") (Proof (Ref "a"))
+;         ('lambda~ (Var "s") ('Pi~ (Var "'rightarrow~") (Proof (Ref "a")) (Proof (Ref "a")))
+;     (Ref "z")))))
+; (TYPE "succ" ('Pi~ (Var "'rightarrow~") {'nat~} {'nat~}))
+; (EXPR "succ"
+;     ('lambda~ (Var "n") (Proof {EXPR "nat"})
+;     ('lambda~ (Var "a") (Prop)
+;         ('lambda~ (Var "z") (Proof (Ref "a"))
+;         ('lambda~ (Var "s") ('Pi~ (Var "'rightarrow~") (Proof (Ref "a")) (Proof (Ref "a")))
+;     (app (Ref "s")
+;          (app (app (app (Ref "n") (Ref "a"))
+;                    (Ref "z"))
+;               (Ref "s"))))))))
 
 ; refined debug info
-[(print "debug-zero-type" T) <-- (has-type _ {Expr "zero"} T)]
-[(print "the-same-nat" T) <-- (the-same-type _ {'nat~} T)]
+; [(print "debug-zero-type" T) <-- (has-type _ {Expr "zero"} T)]
+; [(print "the-same-nat" T) <-- (the-same-type _ {'nat~} T)]

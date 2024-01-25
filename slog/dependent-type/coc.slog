@@ -1,12 +1,19 @@
 ; the Calculus of Constructions (CoC) type checker
 
 << (include "./syntax.slog") >>
+; encode input language into de bruijn indices
+<< (include "./debruijn.slog") >>
+
 << (include "./context.slog") >>
 << (include "./whnf.slog") >>
 << (include "./subst.slog") >>
 
 << (include "./judgement.slog") >>
 
+; this is for debugging
+<< (include "./sanity.slog") >>
+
+; check
 [(error "type-check-failed" 
     (miss-match ?(Type name T1)
                 ?(Expr name e))) <--

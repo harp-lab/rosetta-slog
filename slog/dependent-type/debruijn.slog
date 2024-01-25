@@ -1,0 +1,149 @@
+; convert to de bruijn indice
+
+; source language syntax predicates
+; all raw syntax is prefixed with an initial capital letter
+
+[(raw-expr? t) <-- (raw-term? t)]
+[(raw-expr? t) <-- (raw-type? t)]
+[(raw-expr? t) <-- (raw-kind? t)]
+[(raw-expr? t) <-- (raw-program? t)]
+
+; CoC type
+(raw-type? ?(T-var X))
+[(raw-type? ?('Pi~ (Var x) T1 T2)) <--
+    (raw-type? T1)
+    (raw-type? T2)]
+[(raw-type? ?(T-app T t)) <--
+    (non-raw-pi? T)
+    (raw-type? T)
+    (raw-term? t)]
+(raw-type? ?(Prop))
+[(raw-type? ?(Proof t)) <-- (raw-term? t)]
+
+(not-raw-pi? ?(T-var X))
+[(not-raw-pi? ?(T-app T x)) <-- (not-raw-pi? T)]
+
+; CoC Kind
+(raw-kind? ?('star~))
+[(raw-kind? ?('Pi~ (Var x) T K)) <-- 
+    (raw-type? T)   
+    (raw-kind? K)]
+
+; CoC term
+(raw-term? ?(Ref x))
+(raw-term? ?(EXPR name e))   ; globally defined expr
+(raw-term? ?(TYPE name t))   ; globally defined Type
+[(raw-term? ?('lambda~ (Var x) T t)) <--
+    (raw-type? T)
+    (raw-term? t)]
+[(raw-term? ?(App x y)) <--
+    (not-raw-lambda x)
+    (raw-term? x)]
+[(raw-term? ?('forall~ (Var x) T t)) <--
+    (raw-type? T)
+    (raw-term? t)]
+
+(not-raw-lambda ?(Ref x))
+(not-raw-lambda ?('forall~ (Var x) T t))
+[(not-raw-lambda ?(App x y)) <-- (not-raw-lambda x)]
+(raw-term-claim ?(TYPE name t))
+[(raw-term-not-claim t) <-- (raw-term? t) (~ raw-term-claim t)]
+
+; CoC Program
+; maybe for parallel we don't want this
+[(raw-program? ?('line~ e res)) <--
+    (raw-expr? e)
+    (raw-program? res)]
+(raw-program? ?('program-end~))
+
+; create context
+[(EXPR name e) --> (raw-in-ctx ('mt~) (EXPR name e)) (raw-in-ctx ('mt~) e)]
+[(TYPE name t) --> (raw-in-ctx ('mt~) (TYPE name t)) (raw-in-ctx ('mt~) t)]
+[(raw-in-ctx ('mt~) ('Pi~ (Var x) T1 T2)) -->
+    (raw-in-ctx ('mt~) T1)
+    (raw-in-ctx (d-ctx (dep x 0) ('mt~)) T2)]
+[(raw-in-ctx 'Gamma~ ('Pi~ (Var x) T1 T2))
+ (= 'Gamma~ (d-ctx (dep xx m) 'Gamma~')) -->
+    (raw-in-ctx 'Gamma~ T1)
+    (raw-in-ctx (d-ctx (dep x {+ m 1}) 'Gamma~) T2)]
+[(raw-in-ctx ('mt~) ('lambda~ (Var x) T t)) -->
+    (raw-in-ctx ('mt~) T)
+    (raw-in-ctx (d-ctx (dep x 0) ('mt~)) t)]
+[(raw-in-ctx 'Gamma~ ('lambda~ (Var x) T t))
+ (= 'Gamma~ (d-ctx (dep xx m) 'Gamma~')) -->
+    (raw-in-ctx 'Gamma~ T)
+    (raw-in-ctx (d-ctx (dep x {+ m 1}) 'Gamma~) t)]
+[(raw-in-ctx ('mt~) ('forall~ (Var x) T t)) -->
+    (raw-in-ctx ('mt~) T)
+    (raw-in-ctx (d-ctx (dep x 0) ('mt~)) t)]
+[(raw-in-ctx 'Gamma~ ('forall~ (Var x) T t))
+ (= 'Gamma~ (d-ctx (dep xx m) 'Gamma~')) -->
+    (raw-in-ctx 'Gamma~ T)
+    (raw-in-ctx (d-ctx (dep x {+ m 1}) 'Gamma~) t)]
+[(raw-in-ctx 'Gamma~ (App x y)) -->
+    (raw-in-ctx 'Gamma~ x)
+    (raw-in-ctx 'Gamma~ y)]
+[(raw-in-ctx 'Gamma~ (T-app T t)) -->
+    (raw-in-ctx 'Gamma~ T)
+    (raw-in-ctx 'Gamma~ t)]
+[(raw-in-ctx 'Gamma~ (Proof t)) -->
+    (raw-in-ctx 'Gamma~ t)]
+
+(found-dep ?(find-dep (d-ctx (dep x n) 'Gamma~) x) n)
+[(find-dep (d-ctx (dep y n) 'Gamma~) x) (=/= x y) --> (find-dep 'Gamma~ x)]
+[(found-dep ?(find-dep (d-ctx (dep y _) 'Gamma~) x)  n) <--
+    (=/= x y) (found-dep (find-dep 'Gamma~ x) n)]
+
+(max-dep-d-ctx ?(d-ctx (dep _ m) _) m)
+(max-dep-d-ctx ?('mt~) 0)
+
+(debruijn ?(raw-in-ctx 'Gamma~ (T-var x)) (t-var x))
+[(debruijn ?(raw-in-ctx 'Gamma~ ('Pi~ (Var x) T1 T2))
+            ('Pi~ (var {+ m 1}) d-T1 d-T2)) <--
+    (max-dep-d-ctx 'Gamma~ m)
+    (debruijn (raw-in-ctx 'Gamma~ T1) d-T1)
+    (debruijn (raw-in-ctx (d-ctx (dep x {+ m 1}) 'Gamma~) T2) d-T2)]
+[(debruijn ?(raw-in-ctx 'Gamma~ ('Pi~ (Var x) T1 T2))
+            ('Pi~ (var 0) d-T1 d-T2)) <--
+    (max-dep-d-ctx 'Gamma~ 0)
+    (debruijn (raw-in-ctx 'Gamma~ T1) d-T1)
+    (debruijn (raw-in-ctx (d-ctx (dep x 0) 'Gamma~) T2) d-T2)]
+[(debruijn ?(raw-in-ctx 'Gamma~ (T-app T t)) 
+            (t-app d-T d-t)) <--
+    (debruijn (raw-in-ctx 'Gamma~ T) d-T)
+    (debruijn (raw-in-ctx 'Gamma~ t) d-t)]
+(debruijn ?(raw-in-ctx _ (Prop)) (Prop))
+[(debruijn ?(raw-in-ctx 'Gamma~ (Proof t)) (Proof d-t)) <--
+    (debruijn (raw-in-ctx 'Gamma~ t) d-t)]
+(debruijn ?(raw-in-ctx _ ('star~)) ('star~))
+[(debruijn ?(raw-in-ctx 'Gamma~ (Ref x)) (ref n) ) <--
+    (found-dep !(find-dep 'Gamma~ x) n)]
+[(debruijn ?(raw-in-ctx 'Gamma~ (EXPR name e)) (Expr name d-e)) <--
+    (debruijn (raw-in-ctx 'Gamma~ e) d-e)]
+[(debruijn ?(raw-in-ctx 'Gamma~ (TYPE name t)) (Type name d-t)) <--
+    (debruijn (raw-in-ctx 'Gamma~ t) d-t)]
+[(debruijn ?(raw-in-ctx 'Gamma~ ('lambda~ (Var x) T t)) 
+            ('lambda~ (var {+ m 1}) d-T d-t)) <--
+    (max-dep-d-ctx 'Gamma~ m)
+    (debruijn (raw-in-ctx 'Gamma~ T) d-T)
+    (debruijn (raw-in-ctx (d-ctx (dep x {+ m 1}) 'Gamma~) t) d-t)]
+[(debruijn ?(raw-in-ctx 'Gamma~ ('lambda~ (Var x) T t)) 
+            ('lambda~ (var 0) d-T d-t)) <--
+    (max-dep-d-ctx 'Gamma~ 0)
+    (debruijn (raw-in-ctx 'Gamma~ T) d-T)
+    (debruijn (raw-in-ctx (d-ctx (dep x 0) 'Gamma~) t) d-t)]
+[(debruijn ?(raw-in-ctx 'Gamma~ (App x y)) (app d-x d-y)) <--
+    (debruijn (raw-in-ctx 'Gamma~ x) d-x)
+    (debruijn (raw-in-ctx 'Gamma~ y) d-y)]
+[(debruijn ?(raw-in-ctx 'Gamma~ ('forall~ (Var x) T t)) 
+            ('forall~ (var {+ m 1}) d-T d-t)) <--
+    (max-dep-d-ctx 'Gamma~ m)
+    (debruijn (raw-in-ctx 'Gamma~ T) d-T)
+    (debruijn (raw-in-ctx (d-ctx (dep x {+ m 1}) 'Gamma~) t) d-t)]
+[(debruijn ?(raw-in-ctx 'Gamma~ ('forall~ (Var x) T t)) 
+            ('forall~ (var 0) d-T d-t)) <--
+    (max-dep-d-ctx 'Gamma~ 0)
+    (debruijn (raw-in-ctx 'Gamma~ T) d-T)
+    (debruijn (raw-in-ctx (d-ctx (dep x 0) 'Gamma~) t) d-t)]
+
+

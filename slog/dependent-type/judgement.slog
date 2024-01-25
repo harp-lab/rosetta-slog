@@ -9,13 +9,11 @@
 [(judgement? ?(has-type 'Gamma~ t T)) <--
     (term-in-ctx 'Gamma~ t)
     (coc-type? T)]
-[(error "invalid-judgement" j) <-- (= j (has-type _ _ _)) (~ judgement? j)]
 
 ; kind judgement, under context `'Gamma~`, type `T` has kind `K`
 [(judgement? ?(has-kind 'Gamma~ T K)) <--
     (term-in-ctx 'Gamma~ T)
     (coc-kind? K)]
-[(error "invalid-judgement" j) <-- (= j (has-kind _ _ _)) (~ judgement? j)]
 
 ; term equiv judgement, under context `'Gamma~`, term `t1` is equiv to `t2`
 [(judgement? ?(the-same-term 'Gamma~ t1 t2)) <--
@@ -27,7 +25,6 @@
     (the-same-term 'Gamma~ t1 t3)]
 [(the-same-term 'Gamma~ t1 t2) (has-type 'Gamma~ t1 T) --> (has-type 'Gamma~ t2 T)]
 [(the-same-term 'Gamma~ t1 t2) (has-type 'Gamma~ t2 T) --> (has-type 'Gamma~ t1 T)]
-[(error "invalid-judgement" j) <-- (= j (the-same-term _ _ _)) (~ judgement? j)]
 
 ; type equiv judgement, under context `'Gamma~`, type `T1` is equiv to `T2`
 [(judgement? ?(the-same-type 'Gamma~ T1 T2)) <--
@@ -39,7 +36,6 @@
     (the-same-type 'Gamma~ T1 T3)]
 [(the-same-type 'Gamma~ T1 T2) (has-type 'Gamma~ t T1) --> (has-type 'Gamma~ t T2)]
 [(the-same-type 'Gamma~ T1 T2) (has-type 'Gamma~ t T2) --> (has-type 'Gamma~ t T1)]
-[(error "invalid-judgement" j) <-- (= j (the-same-type _ _ _)) (~ judgement? j)]
 
 ; kind equiv judgement, under context `'Gamma~`, kind `K1` is equiv to `K2`
 [(judgement? ?(the-same-kind 'Gamma~ K1 K2)) <--
@@ -51,11 +47,7 @@
     (the-same-kind 'Gamma~ K1 K3)]
 [(the-same-kind 'Gamma~ K1 K2) (has-kind 'Gamma~ T K1) --> (has-kind 'Gamma~ T K2)]
 [(the-same-kind 'Gamma~ K1 K2) (has-kind 'Gamma~ T K2) --> (has-kind 'Gamma~ T K1)]
-[(error "invalid-judgement" j) <-- (= j (the-same-kind _ _ _)) (~ judgement? j)]
-
 
 [(has-type 'Gamma~ (Expr name e) T) <-- (term-in-ctx 'Gamma~ (Expr name e)) (has-type 'Gamma~ e T)]
 [(has-kind 'Gamma~ (Type name e) K) <-- (term-in-ctx 'Gamma~ (Type name e)) (has-kind 'Gamma~ e K)]
 ; check if all term has been typed, all type has been kinded
-[(error "not-typed" t) <-- (coc-term-not-claim t)  (term-in-ctx 'Gamma~ t) (~ has-type 'Gamma~ t _)]
-[(error "not-kinded" T) <-- (coc-type? T) (term-in-ctx 'Gamma~ T) (~ has-kind 'Gamma~ T _)]

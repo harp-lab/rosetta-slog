@@ -1,3 +1,5 @@
+; α equivalence can't be populated, so expression need to be deburijn indexed
+; but also keep var name as the depth of the binder
 
 [(coc-expr? t) <-- (coc-term? t)]
 [(coc-expr? t) <-- (coc-type? t)]

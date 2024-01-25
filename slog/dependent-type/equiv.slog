@@ -92,8 +92,7 @@
     (term-in-ctx 'Gamma~ ('Pi~ (var x) T (Proof t)))
     (has-kind 'Gamma~ T ('star~))
     (has-type (ctx (term-bind x T) 'Gamma~) t (Prop))]
-[(term-in-ctx 'Gamma~ (Proof ('forall~ (var x) T t)))
- (print "here" ('Pi~ (var x) T (Proof t)))  <--
+[(term-in-ctx 'Gamma~ (Proof ('forall~ (var x) T t))) <--
     (term-in-ctx 'Gamma~ ('Pi~ (var x) T (Proof t)))
     (has-kind 'Gamma~ T ('star~))
     (has-type (ctx (term-bind x T) 'Gamma~) t (Prop))]

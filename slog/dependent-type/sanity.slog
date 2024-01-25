@@ -1,0 +1,27 @@
+; sanity check predicates
+
+; de bruijn index
+[(find-dep ('mt~) x) --> (error "de-bruijn-index-failed" x)]
+[(error "missing-debruijn" (raw-in-ctx 'Gamma~ x)) <--
+     (raw-in-ctx 'Gamma~ x) (~ debruijn (raw-in-ctx 'Gamma~ x) _)]
+
+; subst
+[(error "subst-failed" ?(do-subst x t s)) <-- (~ subst (do-subst x t s) _)]
+
+; ctx 
+[(error "invalid-ctx" 'Gamma~) <-- (= 'Gamma~ (ctx _ _)) (~ coc-ctx? 'Gamma~)]
+[(error "invalid-bind" b) <-- (= b (term-bind _ _)) (~ coc-bind? b)]
+[(error "invalid-bind" b) <-- (= b (type-bind _ _)) (~ coc-bind? b)]
+[(error "invalid-term-in-ctx" t) <-- (term-in-ctx 'Gamma~ t) (~ coc-term-in-ctx? (term-in-ctx 'Gamma~ t))]
+[(error "expr-not-in-ctx" e) <--
+    (input-expr? e)
+    (warnning "expr-not-in-ctx" e)] 
+
+; judgement
+[(error "invalid-judgement" j) <-- (= j (has-type _ _ _)) (~ judgement? j)]
+[(error "invalid-judgement" j) <-- (= j (has-kind _ _ _)) (~ judgement? j)] 
+[(error "invalid-judgement" j) <-- (= j (the-same-term _ _ _)) (~ judgement? j)]
+[(error "invalid-judgement" j) <-- (= j (the-same-type _ _ _)) (~ judgement? j)]
+[(error "invalid-judgement" j) <-- (= j (the-same-kind _ _ _)) (~ judgement? j)]
+[(error "not-typed" t) <-- (coc-term-not-claim t)  (term-in-ctx 'Gamma~ t) (~ has-type 'Gamma~ t _)]
+[(error "not-kinded" T) <-- (coc-type? T) (term-in-ctx 'Gamma~ T) (~ has-kind 'Gamma~ T _)]
