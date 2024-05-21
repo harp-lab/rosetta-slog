@@ -13,12 +13,19 @@
 (proof-of ?(Edge W Y)
     (proof-assume (Edge W Y)))
 
+; proof-assume is 0 precedent node
+; proof-linear is 1 precedent node
+; proof-and is 2 precedent nodes
+
 ; root of proof tree is set to  all output tuples of the query
 ; (proof-root ?(Null X Y))
-
+[(proof-of (Null X Y) (proof-linear (NullEdge X Y) pf)) <--
+ (proof-of (NullEdge X Y) pf)]
 [(proof-of (Null X Y)
-           (proof-and pf1 pf2)) <--
+           (proof-and (Null X Y) pf1
+                      (Edge W Y) pf2)) <--
     (proof-of (Null X Y) pf1)
     (proof-of (Edge W Y) pf2)]
 
-; is it necessary to construct the or?
+; is it necessary to construct the or? in most of definition of "proof tree"
+; this is unnecessary

@@ -1,2 +1,35 @@
+; on-demand provenance
 
+; compute the rule
 
+[(Null X Y) <-- (NullEdge X Y)]
+[(Null X Y) <-- (Null X W) (Edge W Y)]
+
+; compute the provenance
+(proof-of
+    ?(do-prov (NullEdge X Y))
+    (proof-assume (NullEdge X Y)))
+
+(proof-of
+    ?(do-prov (Edge X Y))
+    (proof-assume (Edge X Y)))
+
+[(proof-of
+    ?(do-prov (Null X Y))
+    (proof-linear (Null X Y) pf)) <--
+    (NullEdge X Y)
+    (proof-of !(do-prov (NullEdge X Y)) pf)]
+
+[(do-prov (Null X W))
+ (do-prov (Edge W Y)) <--
+    (do-prov (Null X Y))
+    (Null X W)
+    (Edge W Y)]
+[(proof-of
+    ?(do-prov (Null X Y))
+    (proof-and (Null X W) pf1
+               (Edge W Y) pf2)) <--
+    (proof-of (do-prov (Edge W Y)) pf2)
+    (proof-of (do-prov (Null W Y)) pf1)]
+
+[(Goal X Y) (Null X Y) --> (do-prov (Null X Y))]
