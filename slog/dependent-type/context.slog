@@ -1,8 +1,8 @@
 
 ; --------------------------------------------------------------
 ('in~ ?(ctx bind rest) bind)
-; TODO: a var is bind to a type also means it also bind of all type equal to it
-[('in~ res bind1) --> ('in~ ?(ctx bind res) bind1)]
+[('in~ res (term-bind x xt)) (=/= x y) --> ('in~ ?(ctx (term-bind y yt) res)  (term-bind x xt))]
+[('in~ res (type-bind x xt)) (=/= x y) --> ('in~ ?(ctx (type-bind y yt) res)  (type-bind x xt))]
 
 ; context order is defined by transitive closure on context
 (ctx-'sqsubseteq~ res ?(ctx b res))

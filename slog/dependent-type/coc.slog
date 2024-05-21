@@ -1,8 +1,6 @@
 ; the Calculus of Constructions (CoC) type checker
 
 << (include "./syntax.slog") >>
-; encode input language into de bruijn indices
-<< (include "./debruijn.slog") >>
 
 << (include "./context.slog") >>
 << (include "./whnf.slog") >>

@@ -1,0 +1,49 @@
+
+
+(relation "A")
+(relation "B")
+
+[(relation x) --> (delta x)]
+[(relation x) --> (newt x)]
+(relation? ?(relation a))
+(relation? ?(delta b))
+(relation? ?(newt c))
+
+; primitive operation in backend
+(primitive-operation? ?(dedup x))
+(primitive-operation? ?(union x y))
+(primitive-operation? ?(difference x y))
+(primitive-operation? ?(project x columns))
+(primitive-operation? ?(filter x))
+(primitive-operation? ?(store x y))
+
+; 2 arity relation
+; (relation-clause? ?(relation1 name (var name type1) ))
+; (relation-clause? ?(relation2 name (var name type1) (var name type2)))
+; (relation-clause? ?(relation3 name (var name type1) (var name type2) (var name type3)))
+
+; a <-- b c
+[(HORN2? (HORN2 a b c)) <-- (relation? a) (relation? b) (relation? c)]
+
+; each relation is a circuit variable (all var has the same name will connected together)
+[(relation? x) --> (cvar? x)]
+
+; circuit path with different number of inputs
+[(circuit-path? ?(circuit-0 x)) <-- (cvar? x)]
+[(circuit-path? ?(circuit-1 name input output)) <-- (circuit-path? input) (circuit-path? output)]
+[(circuit-path? ?(circuit-2 name input1 input2 output)) <--
+    (circuit-path? input1) (circuit-path? input2) (circuit-path? output)]
+
+; cvar unification
+[(circuit-1 name1 input mid) (circuit-1 name2 mid output) -->
+    (circuit-1 "distinct" input output)
+    ]
+
+
+[(distinc x) --> (circuit-1 "distinct" x )]
+
+
+[(HORN2 a b c) -->
+    (equi-join (delta a) (delta b) (delta c))
+    ]
+

@@ -1,0 +1,26 @@
+[(apply call (clo (lambda (varparam x) eb) envlam) (fixedarg [as ...]) kont)
+ --> 
+ (store (kaddr eb) kont)
+ (= envtick {tick !(do-tick envlam call)})
+ (store (addr envtick x) (list-of as))
+ (eval eb envtick (kaddr eb))
+ [(free x eb)
+  -->
+  (store-flow (addr envtick x) (addr envlam x))]]
+
+[(apply call (clo (lambda (varparam x) eb) envlam) (fixedarg [as ...]) kont)
+ --> 
+ (do-tick envlam call)]
+
+[(apply call (clo (lambda (varparam x) eb) envlam) (fixedarg [as ...]) kont)
+ (tick (do-tick envlam call) envtick)
+ -->
+ (store (addr envtick x) (list-of as))
+ (eval eb envtick (kaddr eb))]
+
+[(apply call (clo (lambda (varparam x) eb) envlam) (fixedarg [as ...]) kont)
+ (tick (do-tick envlam call) envtick)
+ (free x eb)
+ -->
+ (store-flow (addr envtick x) (addr envlam x))
+ (store-flow (addr envtick x) (addr envlam x))]

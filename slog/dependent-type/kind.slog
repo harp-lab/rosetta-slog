@@ -39,4 +39,5 @@
 [(term-in-ctx 'Gamma~ (Prop)) --> (term-in-ctx 'Gamma~ ('star~)) (has-kind 'Gamma~ (Prop) ('star~))]
 ; ka-prf
 [(term-in-ctx 'Gamma~ (Proof t)) (has-type 'Gamma~ t (Prop)) -->
-     (has-kind 'Gamma~ (Proof t) ('star~)) (term-in-ctx 'Gamma~ ('star~))]
+     (has-kind 'Gamma~ (Proof t) ('star~))
+     (term-in-ctx 'Gamma~ ('star~))]

@@ -23,6 +23,7 @@
                 {"ugly": "'otimes~", "pretty": "⊗"},
                 {"ugly": "'line~", "pretty": "⩀"},
                 {"ugly": "'circ~", "pretty": "∘"},
+                {"ugly": "'Join'", "pretty": "⋈"},
                 {"ugly": "'sqsubseteq~", "pretty": "⊑"},
                 {"ugly": "'nat~", "pretty": "ℕ"},
                 {"ugly": "'mu~", "pretty": "μ"},

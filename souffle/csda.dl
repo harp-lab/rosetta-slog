@@ -1,0 +1,12 @@
+.decl NullEdge(x: number, y: number)
+.input NullEdge
+
+.decl Edge(x: number, y: number)
+.input Edge
+
+.decl Null(x: number, y: number)
+.printsize Null
+.output Null
+
+Null(x, y) :- NullEdge(x, y).
+Null(x, y) :- Null(x, w), Edge(w, y).

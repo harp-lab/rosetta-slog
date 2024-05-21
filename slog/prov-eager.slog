@@ -1,0 +1,24 @@
+
+; compute why-provenance for the CSDA query
+
+; null(X,Y):-nullEdge(X,Y).
+; null(X,Y):-null(X,W),arc(W,Y).
+; null(X,Y)?
+
+; 1. compute provenance while computing the query
+
+; the leaf node of proof tree is IDB rules, here the nullEdge
+(proof-of ?(NullEdge X Y)
+    (proof-assume (NullEdge X Y)))
+(proof-of ?(Edge W Y)
+    (proof-assume (Edge W Y)))
+
+; root of proof tree is set to  all output tuples of the query
+; (proof-root ?(Null X Y))
+
+[(proof-of (Null X Y)
+           (proof-and pf1 pf2)) <--
+    (proof-of (Null X Y) pf1)
+    (proof-of (Edge W Y) pf2)]
+
+; is it necessary to construct the or?

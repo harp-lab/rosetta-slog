@@ -1,0 +1,17 @@
+(foo 1 2)
+(intermediate 2 3)
+(bar 3 4)
+[(foobar a d) <-- (foo a b) (intermediate b c) (bar c d)]
+; -->
+[(tmp a c) <-- (foo a b) (intermediate b c)]
+[(foobar a d) <-- (tmp a c) (bar c d)]
+; tmp can have Δ only if foo/intermediate has delta
+; every Δ will join with delta/full of bar
+; a ⋈ b ⋈ c 
+; (Δa ⋈ b) ⋈ c
+; (Δa ⋈ Δb) ⋈ c
+; (Δa ⋈ Δb) ⋈ c
+; (Δa ⋈ Δb) ⋈ Δc
+; (Δc ⋈ b) ⋈ a
+; (Δc ⋈ Δb) ⋈ a
+;
